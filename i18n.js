@@ -32,10 +32,6 @@ const ru = {
     items: [
       { icon: "lathe", title: "Токарные работы", text: "Обработка деталей вращения на станках с ЧПУ: валы, втулки, цапфы, резьбовые соединения. Точность до IT6, материалы — сталь, нержавейка, латунь, алюминий." },
       { icon: "mill", title: "Фрезерные работы", text: "3- и 5-осевая фрезеровка корпусных деталей, плит, кронштейнов и оснастки. Программирование по 3D-модели заказчика, сложные поверхности и пазы." },
-      { icon: "laser", title: "Лазерная резка", text: "Высокоточная резка листа до 20 мм (сталь, нержавейка, алюминий) на волоконном лазере. Чистая кромка без доработки, раскрой по DXF, оптимизация раскроя." },
-      { icon: "weld", title: "Сварочные работы", text: "MIG/MAG, TIG и ручная дуговая сварка. Сертифицированный персонал, сварные швы по ГОСТ, изготовление сборных узлов и рам любой сложности." },
-      { icon: "structure", title: "Металлоконструкции", text: "Проектирование и производство каркасов, ферм, лестниц, ограждений, ёмкостей и технологических платформ. Антикоррозийная обработка по запросу." },
-      { icon: "paint", title: "Порошковая покраска", text: "Дробеструйная/химическая подготовка поверхности и полимерное покрытие в камере 6×2 м. Более 200 цветов RAL, контроль толщины и адгезии покрытия." },
     ],
   },
   equipment: {
@@ -43,9 +39,6 @@ const ru = {
     subheading: "Парк станков позволяет закрывать полный цикл производства на одной площадке",
     groups: [
       { name: "Токарная группа с ЧПУ", items: ["Токарно-револьверные станки с ЧПУ Ø320×750 мм (цикл CAXA/Fanuc)", "Станки с осью Y и приводной инструментом — полная обработка за 1 установ", "Токарно-винторезные классические станки для доработки и мелкосерийных задач"] },
-      { name: "Фрезерная группа с ЧПУ", items: ["Обрабатывающие центры 3-осевые 1100×500 мм (Fanuc/Siemens)", "5-осевые обрабатывающие центры для корпусных деталей и оснастки", "Вертикальные фрезерные станки для крупногабаритных плит"] },
-      { name: "Резка и гибка", items: ["Волоконный лазер 6 кВт, поле 3015×1500 мм, сталь до 20 мм", "Листогибочный пресс с ЧПУ 100 тс / длина 3200 мм", "Гильотинные ножницы и плазменная резка"] },
-      { name: "Сварка и покраска", items: ["Посты MIG/MAG и TIG, полуавтоматы для высоколегированных сталей", "Камера порошковой окраски 6000×2000×2200 мм, печь полимеризации", "Дробеструйная камера подготовки поверхности"] },
       { name: "Контроль качества", items: ["Координатно-измерительная машина (КИМ)", "Оптический компаратор, щупы, микрометры в поверке", "Отдел технического контроля (ОТК) на всех переделах"] },
     ],
     // TODO: обновите список под фактический парк станков.
@@ -160,10 +153,6 @@ const en = {
     items: [
       { icon: "lathe", title: "CNC turning", text: "Turning parts on CNC lathes: shafts, bushings, trunnions, threaded joints. Accuracy up to IT6 in steel, stainless, brass and aluminium." },
       { icon: "mill", title: "CNC milling", text: "3- and 5-axis milling of housings, plates, brackets and tooling. Programming from the customer's 3D model, complex surfaces and slots." },
-      { icon: "laser", title: "Laser cutting", text: "High-precision fiber-laser cutting up to 20 mm (steel, stainless, aluminium). Clean edges, DXF nesting and cut optimization." },
-      { icon: "weld", title: "Welding", text: "MIG/MAG, TIG and manual arc welding. Certified personnel, GOST-compliant seams, fabricated assemblies and frames of any complexity." },
-      { icon: "structure", title: "Steel structures", text: "Design and production of frames, trusses, stairs, railings, tanks and process platforms. Anti-corrosion treatment on request." },
-      { icon: "paint", title: "Powder coating", text: "Shot-blasting/chemical surface prep and polymer coating in a 6×2 m booth. 200+ RAL colors, thickness and adhesion control." },
     ],
   },
   equipment: {
@@ -171,9 +160,6 @@ const en = {
     subheading: "Our machine park covers the full production cycle on a single site",
     groups: [
       { name: "CNC turning", items: ["CNC turret lathes Ø320×750 mm (Fanuc)", "Y-axis live-tooling machines — full machining in one setup", "Conventional lathes for rework and small series"] },
-      { name: "CNC milling", items: ["3-axis machining centers 1100×500 mm (Fanuc/Siemens)", "5-axis machining centers for housings and tooling", "Vertical mills for oversized plates"] },
-      { name: "Cutting & bending", items: ["6 kW fiber laser, 3015×1500 mm bed, steel up to 20 mm", "100 t CNC press brake, 3200 mm bed", "Guillotine shears and plasma cutting"] },
-      { name: "Welding & painting", items: ["MIG/MAG and TIG stations for alloyed steels", "Powder coating booth 6000×2000×2200 mm with curing oven", "Shot-blasting preparation chamber"] },
       { name: "Quality control", items: ["Coordinate measuring machine (CMM)", "Optical comparator, calibrated gauges and micrometers", "Independent QC department at every stage"] },
     ],
   },

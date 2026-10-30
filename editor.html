@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Редактор сайта — ГлобалМеталлХолд</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    :root {
+      --bg: #1e1e1e; --bg2: #262626; --bg3: #2f2f2f; --line: rgba(255,255,255,.1);
+      --gold: #ffd700; --gold-deep: #d4af37; --txt: #e5e7eb; --gray: #9ca3af;
+      --red: #ef4444; --green: #22c55e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; background: var(--bg); color: var(--txt); line-height: 1.5; }
+    img, svg { display: block; max-width: 100%; }
+    button, input, textarea, select { font: inherit; color: inherit; }
+
+    .topbar { position: sticky; top: 0; z-index: 20; background: #161616; border-bottom: 1px solid var(--line); padding: 12px 20px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; margin-right: auto; }
+    .brand img { width: 38px; height: 38px; object-fit: contain; background: #fff; border-radius: 9px; padding: 3px; }
+    .brand small { display: block; font-size: 11px; font-weight: 500; color: var(--gray); letter-spacing: 1.5px; text-transform: uppercase; }
+    .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tab { background: var(--bg2); border: 1px solid var(--line); color: var(--txt); padding: 8px 14px; border-radius: 9px; cursor: pointer; font-size: 14px; }
+    .tab:hover { border-color: var(--gold-deep); }
+    .tab.active { background: linear-gradient(135deg, var(--gold), var(--gold-deep)); color: #111; font-weight: 700; border-color: transparent; }
+    .btn { border: 0; border-radius: 9px; padding: 9px 16px; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold-deep)); color: #111; }
+    .btn-gold:hover { filter: brightness(1.08); }
+    .btn-ghost { background: var(--bg3); border: 1px solid var(--line); color: var(--txt); }
+    .btn-ghost:hover { border-color: var(--gold-deep); }
+    .btn-red { background: transparent; border: 1px solid var(--red); color: var(--red); font-weight: 600; }
+    .btn-red:hover { background: rgba(239,68,68,.12); }
+    .btn-sm { padding: 5px 10px; font-size: 12.5px; border-radius: 7px; }
+    .langsw { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+    .langsw button { background: var(--bg2); border: 0; padding: 9px 14px; cursor: pointer; color: var(--gray); font-weight: 700; }
+    .langsw button.on { background: linear-gradient(135deg, var(--gold), var(--gold-deep)); color: #111; }
+
+    main { max-width: 1000px; margin: 0 auto; padding: 24px 20px 120px; }
+    .hintbox { background: var(--bg2); border: 1px solid var(--line); border-left: 4px solid var(--gold); border-radius: 10px; padding: 14px 16px; font-size: 14px; color: var(--gray); margin-bottom: 22px; }
+    .hintbox b { color: var(--txt); }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .card { background: var(--bg2); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+    .card h3 { font-size: 15px; margin-bottom: 12px; color: var(--gold); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 700px) { .row { grid-template-columns: 1fr; } .topbar { gap: 8px; } }
+    label.f { display: block; margin-bottom: 10px; }
+    label.f span { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); margin-bottom: 4px; }
+    input[type=text], textarea, select {
+      width: 100%; background: var(--bg3); border: 1px solid var(--line); border-radius: 8px;
+      padding: 9px 11px; color: var(--txt); font-size: 14.5px;
+    }
+    input:focus, textarea:focus { outline: 2px solid var(--gold); outline-offset: 1px; border-color: transparent; }
+    textarea { min-height: 74px; resize: vertical; }
+    .item { border: 1px dashed var(--line); border-radius: 12px; padding: 14px; margin-bottom: 12px; background: rgba(255,255,255,.02); }
+    .item-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+    .item-head b { font-size: 13px; color: var(--gray); }
+    .item-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .addbar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+    .sub { font-size: 13px; color: var(--gray); margin: 4px 0 14px; }
+
+    .shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+    .shot-card { background: var(--bg3); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+    .shot-thumb { aspect-ratio: 4/3; background: repeating-linear-gradient(135deg, #2c2c2c 0 6px, #262626 6px 12px); display: grid; place-items: center; color: var(--gray); font-size: 12px; text-align: center; padding: 8px; }
+    .shot-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .shot-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+
+    .statusbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: #161616; border-top: 1px solid var(--line); padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); display: inline-block; margin-right: 6px; }
+    .dot.dirty { background: var(--gold); }
+    #status-text { font-size: 13.5px; color: var(--gray); margin-right: auto; }
+
+    .toast { position: fixed; top: 76px; right: 18px; z-index: 50; background: linear-gradient(135deg, var(--gold), var(--gold-deep)); color: #111; font-weight: 700; padding: 12px 18px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.4); opacity: 0; transform: translateY(-8px); transition: .25s; pointer-events: none; max-width: 340px; font-size: 14px; }
+    .toast.show { opacity: 1; transform: none; }
+    .toast.err { background: var(--red); color: #fff; }
+    .dropzone { border: 2px dashed var(--line); border-radius: 12px; padding: 22px; text-align: center; color: var(--gray); cursor: pointer; font-size: 14px; background: rgba(255,255,255,.02); }
+    .dropzone:hover, .dropzone.drag { border-color: var(--gold); color: var(--txt); }
+    .note { font-size: 12.5px; color: var(--gray); margin-top: 8px; }
+    code { background: var(--bg3); padding: 2px 6px; border-radius: 6px; font-size: 12.5px; color: var(--gold); }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo.png" alt="ГлобалМеталлХолд">
+      <div>ГлобалМеталлХолд<small>редактор сайта</small></div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-panel="hero">Главный экран</button>
+      <button class="tab" data-panel="about">О компании</button>
+      <button class="tab" data-panel="services">Услуги</button>
+      <button class="tab" data-panel="equipment">Оборудование</button>
+      <button class="tab" data-panel="advantages">Преимущества</button>
+      <button class="tab" data-panel="portfolio">Портфолио</button>
+      <button class="tab" data-panel="process">Этапы</button>
+      <button class="tab" data-panel="contacts">Контакты</button>
+    </nav>
+    <div class="langsw" id="langsw">
+      <button data-lang="ru" class="on">RU</button>
+      <button data-lang="en">EN</button>
+    </div>
+    <a class="btn btn-ghost" href="index.html">Открыть сайт</a>
+  </header>
+
+  <main>
+    <div class="hintbox">
+      <b>Как это работает.</b> Правьте текст в полях и нажимайте «Сохранить» внизу страницы — изменения сразу видны на сайте
+      <code>index.html</code> в этом браузере. Чтобы опубликовать их для всех посетителей:
+      1) нажмите <b>«Экспорт JSON»</b> и положите полученный файл <code>site-data.json</code> в папку сайта рядом с <code>index.html</code>
+      (сайт будет автоматически загружать его); либо 2) нажмите <b>«Скачать i18n.js»</b> и замените этим файлом исходный <code>i18n.js</code>.
+      Кнопка «Импорт JSON» позволяет загрузить ранее сохранённый файл обратно в редактор.
+    </div>
+
+    <section class="panel active" id="p-hero"></section>
+    <section class="panel" id="p-about"></section>
+    <section class="panel" id="p-services"></section>
+    <section class="panel" id="p-equipment"></section>
+    <section class="panel" id="p-advantages"></section>
+    <section class="panel" id="p-portfolio"></section>
+    <section class="panel" id="p-process"></section>
+    <section class="panel" id="p-contacts"></section>
+  </main>
+
+  <div class="statusbar">
+    <span><span class="dot" id="dot"></span><span id="status-text">Нет несохранённых изменений</span></span>
+    <button class="btn btn-ghost" id="btn-import">Импорт JSON</button>
+    <input type="file" id="import-file" accept=".json,application/json" style="display:none">
+    <button class="btn btn-ghost" id="btn-export">Экспорт JSON</button>
+    <button class="btn btn-ghost" id="btn-i18n" title="Скачать обновлённый файл i18n.js для замены в коде сайта">Скачать i18n.js</button>
+    <button class="btn btn-red" id="btn-reset">Сбросить к исходному</button>
+    <button class="btn btn-gold" id="btn-save">💾 Сохранить</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="i18n.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    var OVERRIDE_KEY = "gmh-content-override-v1";   // несохранённые/сохранённые правки (localStorage)
+    var EXPORTED_KEY = "gmh-content-exported-v1";   // контент, загруженный из site-data.json
+    var ICON_KEYS = ["lathe","mill","laser","weld","structure","paint","target","clock","medal","docs","draft","truck","pin","phone","mail","hours"];
+
+    /* ---------- Данные ---------- */
+    function deepCopy(o) { return JSON.parse(JSON.stringify(o)); }
+    function readJSON(key) {
+      try { var s = localStorage.getItem(key); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+    }
+    function getBase() {
+      var exp = readJSON(EXPORTED_KEY);
+      if (exp && exp.ru && exp.en) return exp;
+      return { ru: window.I18N.ru, en: window.I18N.en };
+    }
+    var ov = readJSON(OVERRIDE_KEY);
+    if (!ov || !ov.ru || !ov.en) { ov = { ru: deepCopy(window.I18N.ru), en: deepCopy(window.I18N.en) }; }
+    var dirty = false, curLang = "ru";
+
+    /* ---------- Утилиты DOM ---------- */
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+      });
+    }
+    function el(html) { var t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+    function field(label, value, keyFn, multiline) {
+      var w = el('<label class="f"><span>' + esc(label) + "</span>" + (multiline ? "<textarea></textarea>" : '<input type="text">') + "</label>");
+      var inp = w.querySelector("textarea, input");
+      inp.value = value == null ? "" : value;
+      inp.addEventListener("input", function () { keyFn(inp.value); markDirty(); });
+      return w;
+    }
+    function selField(label, value, options, keyFn) {
+      var w = el('<label class="f"><span>' + esc(label) + '</span><select></select></label>');
+      var s = w.querySelector("select");
+      options.forEach(function (o) {
+        var op = document.createElement("option"); op.value = o[0]; op.textContent = o[1]; s.appendChild(op);
+      });
+      s.value = value;
+      s.addEventListener("change", function () { keyFn(s.value); markDirty(); });
+      return w;
+    }
+    function move(arr, i, d) { var j = i + d; if (j < 0 || j >= arr.length) return; var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
+    function itemCard(titleText, buildBody, onRemove, onUp, onDown) {
+      var c = el('<div class="item"><div class="item-head"><b></b><div class="item-actions"></div></div><div class="item-body"></div></div>');
+      c.querySelector("b").textContent = titleText;
+      var acts = c.querySelector(".item-actions");
+      [["↑", onUp], ["↓", onDown], ["Удалить", onRemove]].forEach(function (a) {
+        var b = el('<button type="button" class="btn btn-sm ' + (a[1] === onRemove ? "btn-red" : "btn-ghost") + '">' + a[0] + "</button>");
+        b.addEventListener("click", function () { a[1](); markDirty(); renderAll(); });
+        acts.appendChild(b);
+      });
+      buildBody(c.querySelector(".item-body"));
+      return c;
+    }
+    function toast(msg, isErr) {
+      var t = document.getElementById("toast");
+      t.textContent = msg; t.classList.toggle("err", !!isErr); t.classList.add("show");
+      clearTimeout(t._tm); t._tm = setTimeout(function () { t.classList.remove("show"); }, 3200);
+    }
+    function markDirty() {
+      dirty = true;
+      document.getElementById("dot").classList.add("dirty");
+      document.getElementById("status-text").textContent = "Есть несохранённые изменения — нажмите «Сохранить»";
+    }
+    function clearDirty() {
+      dirty = false;
+      document.getElementById("dot").classList.remove("dirty");
+      document.getElementById("status-text").textContent = "Изменения сохранены. Обновите index.html, чтобы увидеть результат.";
+    }
+
+    /* ---------- Сжатие изображений (для портфолио) ---------- */
+    function compressImage(file, cb) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        var img = new Image();
+        img.onload = function () {
+          var MAX = 1200, w = img.width, h = img.height;
+          if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+          var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+          cv.getContext("2d").drawImage(img, 0, 0, w, h);
+          cb(cv.toDataURL("image/jpeg", 0.82));
+        };
+        img.onerror = function () { toast("Не удалось прочитать изображение", true); };
+        img.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    }
+
+    /* ---------- Панели ---------- */
+    function panel(id) { var p = document.getElementById("p-" + id); p.innerHTML = ""; return p; }
+    function card(title) { var c = el('<div class="card"><h3></h3></div>'); c.querySelector("h3").textContent = title; return c; }
+    function addBtn(text, fn) { var b = el('<button type="button" class="btn btn-ghost">＋ ' + esc(text) + "</button>"); b.addEventListener("click", function(){ fn(); markDirty(); renderAll(); }); return b; }
+
+    function renderHero() {
+      var t = ov[curLang], p = panel("hero"), c = card("Главный экран (hero)");
+      c.appendChild(field("Бейдж (над заголовком)", t.hero.badge, function (v){ t.hero.badge = v; }));
+      c.appendChild(field("Заголовок H1", t.hero.title, function (v){ t.hero.title = v; }));
+      c.appendChild(field("Подзаголовок", t.hero.subtitle, function (v){ t.hero.subtitle = v; }, true));
+      c.appendChild(el('<div class="row"></div>')).appendChild(field("Кнопка 1 (текст)", t.hero.ctaPrimary, function (v){ t.hero.ctaPrimary = v; }));
+      c.lastChild.appendChild(field("Кнопка 2 (текст)", t.hero.ctaSecondary, function (v){ t.hero.ctaSecondary = v; }));
+      c.appendChild(field("Примечание под кнопками", t.hero.note, function (v){ t.hero.note = v; }, true));
+      p.appendChild(c);
+    }
+
+    function renderAbout() {
+      var t = ov[curLang], p = panel("about"), c = card("О компании / статистика");
+      c.appendChild(field("Заголовок раздела", t.stats.heading, function (v){ t.stats.heading = v; }));
+      c.appendChild(field("Вводный текст", t.stats.lead, function (v){ t.stats.lead = v; }, true));
+      p.appendChild(c);
+      var cl = card("Показатели (число + подпись)");
+      t.stats.items.forEach(function (it, i) {
+        cl.appendChild(itemCard("Показатель " + (i + 1), function (body) {
+          body.appendChild(el('<div class="row"></div>'))
+            .appendChild(field("Число / значение", it[0], function (v){ it[0] = v; }));
+          body.firstChild.appendChild(field("Подпись", it[1], function (v){ it[1] = v; }));
+        }, function () { t.stats.items.splice(i, 1); },
+           function () { move(t.stats.items, i, -1); },
+           function () { move(t.stats.items, i, 1); }));
+      });
+      cl.appendChild(addBtn("Добавить показатель", function () { t.stats.items.push(["0", "Подпись"]); }));
+      p.appendChild(cl);
+    }
+
+    function renderServices() {
+      var t = ov[curLang], p = panel("services"), c = card("Раздел «Услуги»");
+      c.appendChild(field("Заголовок", t.services.heading, function (v){ t.services.heading = v; }));
+      c.appendChild(field("Подзаголовок", t.services.subheading, function (v){ t.services.subheading = v; }, true));
+      p.appendChild(c);
+      var cl = card("Список услуг — добавляйте, удаляйте, редактируйте");
+      t.services.items.forEach(function (it, i) {
+        cl.appendChild(itemCard("Услуга " + (i + 1) + ": " + (it.title || ""), function (body) {
+          body.appendChild(el('<div class="row"></div>'))
+            .appendChild(field("Название услуги", it.title, function (v){ it.title = v; }));
+          body.firstChild.appendChild(selField("Иконка", it.icon, ICON_KEYS.map(function (k){ return [k, k]; }), function (v){ it.icon = v; }));
+          body.appendChild(field("Описание", it.text, function (v){ it.text = v; }, true));
+        }, function () { t.services.items.splice(i, 1); },
+           function () { move(t.services.items, i, -1); },
+           function () { move(t.services.items, i, 1); }));
+      });
+      cl.appendChild(addBtn("Добавить услугу", function () { t.services.items.push({ icon: "lathe", title: "Новая услуга", text: "Описание услуги…" }); }));
+      p.appendChild(cl);
+    }
+
+    function renderEquipment() {
+      var t = ov[curLang], p = panel("equipment"), c = card("Раздел «Оборудование и технологии»");
+      c.appendChild(field("Заголовок", t.equipment.heading, function (v){ t.equipment.heading = v; }));
+      c.appendChild(field("Подзаголовок", t.equipment.subheading, function (v){ t.equipment.subheading = v; }, true));
+      p.appendChild(c);
+      var cl = card("Группы оборудования");
+      t.equipment.groups.forEach(function (g, gi) {
+        var box = itemCard("Группа: " + (g.name || ""), function (body) {
+          body.appendChild(field("Название группы", g.name, function (v){ g.name = v; }));
+          body.appendChild(el('<p class="sub">Позиции оборудования (по одной на строку):</p>'));
+          var ta = el('<textarea style="min-height:110px"></textarea>');
+          ta.value = g.items.join("\n");
+          ta.addEventListener("input", function () {
+            g.items = ta.value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean);
+            markDirty();
+          });
+          body.appendChild(ta);
+        }, function () { t.equipment.groups.splice(gi, 1); },
+           function () { move(t.equipment.groups, gi, -1); },
+           function () { move(t.equipment.groups, gi, 1); });
+        cl.appendChild(box);
+      });
+      cl.appendChild(addBtn("Добавить группу", function () { t.equipment.groups.push({ name: "Новая группа", items: ["Позиция оборудования"] }); }));
+      p.appendChild(cl);
+    }
+
+    function renderAdvantages() {
+      var t = ov[curLang], p = panel("advantages"), c = card("Раздел «Преимущества»");
+      c.appendChild(field("Заголовок", t.advantages.heading, function (v){ t.advantages.heading = v; }));
+      p.appendChild(c);
+      var cl = card("Карточки преимуществ");
+      t.advantages.items.forEach(function (it, i) {
+        cl.appendChild(itemCard("Преимущество " + (i + 1) + ": " + (it.title || ""), function (body) {
+          body.appendChild(el('<div class="row"></div>'))
+            .appendChild(field("Название", it.title, function (v){ it.title = v; }));
+          body.firstChild.appendChild(selField("Иконка", it.icon, ICON_KEYS.map(function (k){ return [k, k]; }), function (v){ it.icon = v; }));
+          body.appendChild(field("Описание", it.text, function (v){ it.text = v; }, true));
+        }, function () { t.advantages.items.splice(i, 1); },
+           function () { move(t.advantages.items, i, -1); },
+           function () { move(t.advantages.items, i, 1); }));
+      });
+      cl.appendChild(addBtn("Добавить преимущество", function () { t.advantages.items.push({ icon: "target", title: "Новое преимущество", text: "Описание…" }); }));
+      p.appendChild(cl);
+    }
+
+    function normItem(it) { return typeof it === "string" ? { caption: it, img: "" } : it; }
+    function renderPortfolio() {
+      var t = ov[curLang], p = panel("portfolio"), c = card("Раздел «Портфолио выполненных работ»");
+      c.appendChild(field("Заголовок", t.portfolio.heading, function (v){ t.portfolio.heading = v; }));
+      c.appendChild(field("Подзаголовок", t.portfolio.subheading, function (v){ t.portfolio.subheading = v; }, true));
+      p.appendChild(c);
+
+      var cl = card("Фотографии работ — можно загружать свои файлы или указывать ссылку");
+      t.portfolio.items = t.portfolio.items.map(normItem);
+      t.portfolio.items.forEach(function (it, i) {
+        var body = function (b) {
+          var th = el('<div class="shot-thumb"></div>');
+          if (it.img) { th.appendChild(el('<img alt="" src="' + esc(it.img) + '">')); }
+          else { th.textContent = "Фото не загружено"; }
+          b.appendChild(th);
+          b.appendChild(field("Подпись к фото", it.caption, function (v){ it.caption = v; }));
+          var pick = el('<button type="button" class="btn btn-sm btn-ghost">📁 Загрузить / заменить фото…</button>');
+          var fin = el('<input type="file" accept="image/*" style="display:none">');
+          pick.addEventListener("click", function () { fin.click(); });
+          fin.addEventListener("change", function () {
+            var f = fin.files[0]; if (!f) return;
+            compressImage(f, function (dataUrl) { it.img = dataUrl; markDirty(); renderAll(); });
+          });
+          b.appendChild(pick); b.appendChild(fin);
+          if (it.img) {
+            var rm = el('<button type="button" class="btn btn-sm btn-ghost">✕ Убрать фото</button>');
+            rm.addEventListener("click", function () { it.img = ""; markDirty(); renderAll(); });
+            b.appendChild(rm);
+          }
+          b.appendChild(field("…или ссылка на файл (например photos/work1.jpg)", it.img && it.img.indexOf("data:") === 0 ? "" : it.img, function (v){ if (v.trim()) it.img = v.trim(); }));
+        };
+        var cardEl = itemCard("Работа " + (i + 1), body,
+          function () { t.portfolio.items.splice(i, 1); },
+          function () { move(t.portfolio.items, i, -1); },
+          function () { move(t.portfolio.items, i, 1); });
+        cardEl.style.display = "inline-block"; cardEl.style.width = "calc(50% - 6px)"; cardEl.style.verticalAlign = "top";
+        cl.appendChild(cardEl);
+      });
+      cl.appendChild(addBtn("Добавить фото работы", function () { t.portfolio.items.push({ caption: "Новая работа", img: "" }); }));
+      p.appendChild(cl);
+    }
+
+    function renderProcess() {
+      var t = ov[curLang], p = panel("process"), c = card("Раздел «Этапы сотрудничества»");
+      c.appendChild(field("Заголовок", t.process.heading, function (v){ t.process.heading = v; }));
+      c.appendChild(field("Подзаголовок", t.process.subheading, function (v){ t.process.subheading = v; }, true));
+      p.appendChild(c);
+      var cl = card("Этапы (нумеруются автоматически)");
+      t.process.steps.forEach(function (it, i) {
+        cl.appendChild(itemCard("Этап " + (i + 1) + ": " + (it.title || ""), function (body) {
+          body.appendChild(field("Название этапа", it.title, function (v){ it.title = v; }));
+          body.appendChild(field("Описание", it.text, function (v){ it.text = v; }, true));
+        }, function () { t.process.steps.splice(i, 1); },
+           function () { move(t.process.steps, i, -1); },
+           function () { move(t.process.steps, i, 1); }));
+      });
+      cl.appendChild(addBtn("Добавить этап", function () { t.process.steps.push({ title: "Новый этап", text: "Описание этапа…" }); }));
+      p.appendChild(cl);
+    }
+
+    function renderContacts() {
+      var t = ov[curLang], p = panel("contacts"), c = card("Контакты и футер");
+      c.appendChild(field("Заголовок раздела", t.contacts.heading, function (v){ t.contacts.heading = v; }));
+      c.appendChild(el('<div class="row"></div>'))
+        .appendChild(field("Телефон (в шапке и разделе)", t.nav.phone, function (v){ t.nav.phone = v; ov[curLang].nav.phone = v; }));
+      c.lastChild.appendChild(field("Email для заявок", t.contacts.email, function (v){ t.contacts.email = v; }));
+      c.appendChild(field("Адрес", t.contacts.address, function (v){ t.contacts.address = v; }, true));
+      c.appendChild(field("Режим работы", t.contacts.hours, function (v){ t.contacts.hours = v; }));
+      c.appendChild(field("Подпись к карте", t.contacts.mapLabel, function (v){ t.contacts.mapLabel = v; }));
+      c.appendChild(field("Текст о компании в футере", t.footer.about, function (v){ t.footer.about = v; }, true));
+      c.appendChild(field("Реквизиты в футере", t.footer.requisites, function (v){ t.footer.requisites = v; }, true));
+      p.appendChild(c);
+    }
+
+    function renderAll() {
+      renderHero(); renderAbout(); renderServices(); renderEquipment();
+      renderAdvantages(); renderPortfolio(); renderProcess(); renderContacts();
+    }
+
+    /* ---------- Навигация и язык ---------- */
+    document.getElementById("tabs").addEventListener("click", function (e) {
+      var b = e.target.closest(".tab"); if (!b) return;
+      document.querySelectorAll(".tab").forEach(function (x) { x.classList.toggle("active", x === b); });
+      document.querySelectorAll(".panel").forEach(function (x) { x.classList.toggle("active", x.id === "p-" + b.dataset.panel); });
+    });
+    document.getElementById("langsw").addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-lang]"); if (!b || b.dataset.lang === curLang) return;
+      curLang = b.dataset.lang;
+      document.querySelectorAll("#langsw button").forEach(function (x) { x.classList.toggle("on", x === b); });
+      renderAll();
+    });
+
+    /* ---------- Сохранение / экспорт / импорт / сброс ---------- */
+    document.getElementById("btn-save").addEventListener("click", function () {
+      try {
+        localStorage.setItem(OVERRIDE_KEY, JSON.stringify(ov));
+        clearDirty(); toast("Сохранено! Откройте index.html — сайт обновится.");
+      } catch (e) {
+        toast("Не удалось сохранить: хранилище браузера переполнено. Используйте меньше/меньших по размеру фото.", true);
+      }
+    });
+    document.getElementById("btn-export").addEventListener("click", function () {
+      var blob = new Blob([JSON.stringify(ov, null, 2)], { type: "application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = "site-data.json";
+      document.body.appendChild(a); a.click(); a.remove();
+      toast("Файл site-data.json скачан. Положите его в папку сайта рядом с index.html.");
+    });
+    document.getElementById("btn-i18n").addEventListener("click", function () {
+      var src = "/* Словари контента RU/EN — обновлено через «Редактор сайта» */\n\n" +
+        "const ru = " + JSON.stringify(ov.ru, null, 2) + ";\n\n" +
+        "const en = " + JSON.stringify(ov.en, null, 2) + ";\n\n" +
+        "window.I18N = { ru, en };\n";
+      var blob = new Blob([src], { type: "text/javascript;charset=utf-8" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob); a.download = "i18n.js";
+      document.body.appendChild(a); a.click(); a.remove();
+      toast("Файл i18n.js скачан. Замените им старый i18n.js в папке сайта.");
+    });
+    document.getElementById("btn-import").addEventListener("click", function () {
+      document.getElementById("import-file").click();
+    });
+    document.getElementById("import-file").addEventListener("change", function () {
+      var f = this.files[0]; if (!f) return;
+      var fr = new FileReader();
+      fr.onload = function () {
+        try {
+          var data = JSON.parse(fr.result);
+          if (!data.ru || !data.en) throw new Error("bad");
+          ov = data; curLang = curLang || "ru";
+          localStorage.setItem(OVERRIDE_KEY, JSON.stringify(ov));
+          clearDirty(); renderAll(); toast("Файл импортирован и применён.");
+        } catch (e) { toast("Некорректный JSON-файл", true); }
+      };
+      fr.readAsText(f); this.value = "";
+    });
+    document.getElementById("btn-reset").addEventListener("click", function () {
+      if (!confirm("Вернуть содержимое сайта к исходному (все ваши правки будут удалены)?")) return;
+      localStorage.removeItem(OVERRIDE_KEY);
+      ov = { ru: deepCopy(getBase().ru), en: deepCopy(getBase().en) };
+      dirty = false;
+      document.getElementById("dot").classList.remove("dirty");
+      document.getElementById("status-text").textContent = "Содержимое сброшено к исходному.";
+      renderAll(); toast("Сброшено к исходному содержимому.");
+    });
+
+    renderAll();
+  })();
+  </script>
+</body>
+</html>

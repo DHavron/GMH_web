@@ -45,6 +45,25 @@
     });
   }
 
+  /* ---------- Переопределённый контент (правится через «Редактор сайта» — editor.html) ---------- */
+  var OVERRIDE_KEY = "gmh-content-override-v1"; // копия контента в localStorage
+  var EXPORTED_KEY = "gmh-content-exported-v1"; // контент, загруженный из site-data.json
+  function deepCopy(o) { return JSON.parse(JSON.stringify(o)); }
+  function readJSON(key) {
+    try { var s = localStorage.getItem(key); return s ? JSON.parse(s) : null; } catch (e) { return null; }
+  }
+  function getBase() {
+    var exp = readJSON(EXPORTED_KEY);
+    if (exp && exp.ru && exp.en) return exp;
+    return { ru: window.I18N.ru, en: window.I18N.en };
+  }
+  var renderedOnce = false; // контент уже отрендерен фолбэком (DOMContentLoaded) — ждём перезапуска после site-data.json
+  function getTranslated(lang) {
+    var ov = readJSON(OVERRIDE_KEY);
+    if (ov && ov[lang]) return ov[lang];
+    return getBase()[lang];
+  }
+
   /* ---------- Рендер секций ---------- */
   function render(t) {
     document.getElementById("hero").innerHTML =
@@ -94,7 +113,11 @@
       '<div class="container"><div class="section-head reveal"><p class="kicker">' + esc(t.nav.portfolio) + "</p><h2>" + esc(t.portfolio.heading) +
       "</h2><p>" + esc(t.portfolio.subheading) + "</p></div>" +
       '<div class="gallery">' + t.portfolio.items.map(function (p, i) {
-        return '<figure class="shot reveal" style="transition-delay:' + (i % 4) * 80 + 'ms"><figcaption>' + esc(p) + "</figcaption></figure>";
+        var cap = typeof p === "string" ? p : (p.caption || "");
+        var img = (typeof p === "object" && p.img)
+          ? '<img src="' + p.img + '" alt="' + esc(cap) + '" loading="lazy">'
+          : "";
+        return '<figure class="shot reveal" style="transition-delay:' + (i % 4) * 80 + 'ms">' + img + "<figcaption>" + esc(cap) + "</figcaption></figure>";
       }).join("") + "</div></div>";
 
     document.getElementById("process").innerHTML =
@@ -298,11 +321,11 @@
 
   /* ---------- Язык ---------- */
   function applyLang(lang) {
-    var t = D[lang];
+    var t = getTranslated(lang);
     document.documentElement.lang = lang;
     document.title = lang === "ru"
-      ? "ГлобалМеталлХолд — металлообработка на заказ в Логойске | ЧПУ, лазерная резка, сварка"
-      : "GlobalMetalHold — custom metalworking in Logoisk, Belarus | CNC, laser cutting, welding";
+      ? "ГлобалМеталлХолд — металлообработка на заказ в Логойске | Токарные и фрезерные работы на ЧПУ"
+      : "GlobalMetalHold — custom metalworking in Logoisk, Belarus | CNC turning and milling";
     document.querySelectorAll(".lang-switch button").forEach(function (b) {
       b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
     });
@@ -312,18 +335,31 @@
   }
 
   /* ---------- Инициализация ---------- */
-  document.addEventListener("DOMContentLoaded", function () {
+  var started = false; // был ли уже выполнен первый рендер (фолбэком)
+  function startSite(force) {
+    if (started && !force) return;
+    started = true;
     var saved = "ru";
-    try { saved = localStorage.getItem("gmh-lang") || (navigator.language || "").toLowerCase().indexOf("en") === 0 ? (localStorage.getItem("gmh-lang") || "ru") : "ru"; } catch (e) {}
-    document.querySelectorAll(".lang-switch button").forEach(function (b) {
-      b.addEventListener("click", function () { applyLang(b.dataset.lang); });
-    });
-    var burger = document.getElementById("burger"), nav = document.getElementById("nav");
-    burger.addEventListener("click", function () {
-      var open = nav.classList.toggle("open");
-      burger.setAttribute("aria-expanded", String(open));
-    });
-    nav.addEventListener("click", function (e) { if (e.target.tagName === "A") nav.classList.remove("open"); });
+    try { saved = localStorage.getItem("gmh-lang") || "ru"; } catch (e) {}
+    if (!startSite.wired) {
+      startSite.wired = true;
+      document.querySelectorAll(".lang-switch button").forEach(function (b) {
+        b.addEventListener("click", function () { applyLang(b.dataset.lang); });
+      });
+      var burger = document.getElementById("burger"), nav = document.getElementById("nav");
+      burger.addEventListener("click", function () {
+        var open = nav.classList.toggle("open");
+        burger.setAttribute("aria-expanded", String(open));
+      });
+      nav.addEventListener("click", function (e) { if (e.target.tagName === "A") nav.classList.remove("open"); });
+    }
     applyLang(saved === "en" ? "en" : "ru");
-  });
+  }
+  window.__gmhStart = function () { startSite(started); }; // вызывается после попытки загрузки site-data.json (см. index.html)
+  /* Фолбэк: стартуем сразу после DOMContentLoaded, не дожидаясь ответа по site-data.json */
+  document.addEventListener("DOMContentLoaded", function () { startSite(false); });
+  /* Если ответ по site-data.json пришёл уже после первого рендера — перерисовываем сайт */
+  setInterval(function () {
+    if (window.__gmhDataLoaded && !startSite.rebuilt && started) { startSite.rebuilt = true; startSite(true); }
+  }, 300);
 })();

@@ -200,7 +200,13 @@ h2 { font-size: clamp(24px, 3.6vw, 38px); color: var(--white); line-height: 1.2;
 .shot:hover { transform: scale(1.02); box-shadow: var(--shadow); }
 .shot::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 30% 25%, rgba(255,215,0,0.14), transparent 55%); }
 .shot figcaption { position: relative; z-index: 1; width: 100%; padding: 12px 14px; font-size: 13.5px; color: #e5e7eb; background: linear-gradient(transparent, rgba(0,0,0,0.78)); }
+.shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+.shot::before { z-index: 0; }
 /* TODO: вставьте реальные фото: .shot { background-image: url(...) } и очистите стили-плейсхолдеры */
+
+/* Логотип (logo.png) — подложка сделана белой, чтобы логотип читался на тёмном фоне */
+.logo-icon { background: #fff; overflow: hidden; }
+.logo-img { width: 100%; height: 100%; object-fit: contain; padding: 3px; }
 
 /* ---------- Process ---------- */
 .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; counter-reset: step; }

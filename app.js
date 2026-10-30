@@ -29,8 +29,20 @@
     pin: svg('<path d="M12 21s-6.5-5.5-6.5-10A6.5 6.5 0 0 1 18.5 11c0 4.5-6.5 10-6.5 10z"/><circle cx="12" cy="10.5" r="2.3"/>'),
     phone: svg('<path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>'),
     mail: svg('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'),
-    hours: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/>')
+    hours: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/>'),
+    /* Дополнительные иконки (выбираются в редакторе сайта) */
+    map: svg('<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>'),
+    factory: svg('<path d="M3 21h18M4 21V11l5 3V11l5 3V11l5 3v7"/><path d="M7 7V4h2v3M4 11V7h1v4"/>'),
+    building: svg('<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M10 21v-3h4v3"/>'),
+    globe: svg('<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.4 3.8 5.3 3.8 8.5s-1.3 6.1-3.8 8.5c-2.5-2.4-3.8-5.3-3.8-8.5S9.5 5.9 12 3.5z"/>'),
+    mobile: svg('<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M10.5 18.5h3"/>'),
+    whatsapp: svg('<path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3z"/><path d="M8.8 9.6c.3 2 1.6 3.3 3.6 3.6.7.1 1.3-.2 1.6-.8l-1.4-.9-.8.6c-.9-.4-1.5-1-1.9-1.9l.6-.8-.9-1.4c-.6.3-.9.9-.8 1.6z"/>'),
+    envelope: svg('<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 7l9.5 6 9.5-6M9 12l3 2 3-2"/>'),
+    chat: svg('<path d="M4 5h16v11H9l-5 4V5z"/><path d="M8 9h8M8 12h5"/>'),
+    calendar: svg('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h2M14 14h2"/>'),
+    star: svg('<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3z"/>')
   };
+  window.GMH_ICONS = ICONS; /* доступно редактору сайта (editor.html) */
 
   /* ---------- Утилиты ---------- */
   function el(tag, cls, html) {
@@ -66,6 +78,7 @@
 
   /* ---------- Рендер секций ---------- */
   function render(t) {
+    if (!document.getElementById("hero")) return; // не страница сайта (например, editor.html)
     document.getElementById("hero").innerHTML =
       '<div class="container hero-inner">' +
         '<span class="badge">' + esc(t.hero.badge) + "</span>" +
@@ -271,13 +284,14 @@
   /* ---------- Контакты и футер ---------- */
   function renderContacts(t) {
     var c = t.contacts;
+    var icons = c.icons || {};
     document.getElementById("contacts").innerHTML =
       '<div class="container"><div class="section-head reveal"><p class="kicker">' + esc(c.heading) + "</p><h2>" + esc(c.heading) + "</h2></div>" +
       '<div class="form-wrap"><div class="contact-list reveal">' +
-        ci(c.pin, c.addressLabel, esc(c.address)) +
-        ci(c.phone, c.phoneLabel, '<a href="tel:' + PHONE_TEL + '">' + esc(t.nav.phone) + "</a>") +
-        ci(c.mail, c.emailLabel, '<a href="mailto:' + EMAIL + '">' + EMAIL + "</a>") +
-        ci(c.hours, c.hoursLabel, esc(c.hours)) +
+        ci(icons.address || "pin", c.addressLabel, esc(c.address)) +
+        ci(icons.phone || "phone", c.phoneLabel, '<a href="tel:' + PHONE_TEL + '">' + esc(t.nav.phone) + "</a>") +
+        ci(icons.email || "mail", c.emailLabel, '<a href="mailto:' + EMAIL + '">' + EMAIL + "</a>") +
+        ci(icons.hours || "hours", c.hoursLabel, esc(c.hours)) +
       "</div>" +
       '<div class="map-frame reveal"><iframe title="' + esc(c.mapLabel) + '" loading="lazy" referrerpolicy="no-referrer-when-downgrade" ' +
       'src="https://www.openstreetmap.org/export/embed.html?bbox=27.80%2C54.18%2C28.02%2C54.30&layer=mapnik&marker=54.2419%2C27.8466"></iframe></div>' +
@@ -347,6 +361,7 @@
         b.addEventListener("click", function () { applyLang(b.dataset.lang); });
       });
       var burger = document.getElementById("burger"), nav = document.getElementById("nav");
+      if (!burger || !nav) return; // страница не является сайтом (например, editor.html) — инициализация не нужна
       burger.addEventListener("click", function () {
         var open = nav.classList.toggle("open");
         burger.setAttribute("aria-expanded", String(open));

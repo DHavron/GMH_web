@@ -80,6 +80,18 @@
     .dropzone:hover, .dropzone.drag { border-color: var(--gold); color: var(--txt); }
     .note { font-size: 12.5px; color: var(--gray); margin-top: 8px; }
     code { background: var(--bg3); padding: 2px 6px; border-radius: 6px; font-size: 12.5px; color: var(--gold); }
+
+    /* Выбор иконки */
+    .icon-picker { margin-top: 4px; }
+    .ip-label { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--gray); margin-bottom: 6px; }
+    .ip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+    .ip-btn { background: var(--bg3); border: 1px solid var(--line); border-radius: 10px; padding: 8px 6px 7px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; color: var(--txt); transition: .15s; }
+    .ip-btn:hover { border-color: var(--gold-deep); }
+    .ip-btn.on { border-color: var(--gold); background: rgba(255,215,0,.1); box-shadow: 0 0 0 1px var(--gold) inset; }
+    .ip-ico { width: 24px; height: 24px; display: grid; place-items: center; color: var(--gold); }
+    .ip-ico svg { width: 22px; height: 22px; }
+    .ip-btn small { font-size: 10.5px; color: var(--gray); text-align: center; line-height: 1.25; }
+    .ip-btn.on small { color: var(--txt); }
   </style>
 </head>
 <body>
@@ -137,6 +149,7 @@
   <div class="toast" id="toast"></div>
 
   <script src="i18n.js"></script>
+  <script src="app.js"></script>
   <script>
   (function () {
     "use strict";
@@ -144,6 +157,14 @@
     var OVERRIDE_KEY = "gmh-content-override-v1";   // несохранённые/сохранённые правки (localStorage)
     var EXPORTED_KEY = "gmh-content-exported-v1";   // контент, загруженный из site-data.json
     var ICON_KEYS = ["lathe","mill","laser","weld","structure","paint","target","clock","medal","docs","draft","truck","pin","phone","mail","hours"];
+    var CONTACT_ICON_KEYS = ["pin","map","factory","building","globe","truck","phone","mobile","whatsapp","mail","envelope","chat","hours","clock","calendar","target","docs","star"];
+    var ICON_LABELS = {
+      lathe: "Станок токарный", mill: "Фрезер", laser: "Лазер", weld: "Сварка", structure: "Конструкция", paint: "Покраска",
+      target: "Цель / точность", clock: "Часы", medal: "Медаль", docs: "Документы", draft: "Чертеж", truck: "Грузовик",
+      pin: "Метка на карте", map: "Карта", factory: "Завод", building: "Здание", globe: "Глобус", phone: "Телефон (классич.)",
+      mobile: "Мобильный", whatsapp: "WhatsApp / мессенджер", mail: "Конверт (email)", envelope: "Письмо", chat: "Чат / диалог",
+      hours: "Режим работы", calendar: "Календарь", star: "Звезда"
+    };
 
     /* ---------- Данные ---------- */
     function deepCopy(o) { return JSON.parse(JSON.stringify(o)); }
@@ -183,16 +204,40 @@
       s.addEventListener("change", function () { keyFn(s.value); markDirty(); });
       return w;
     }
+    /* Изображение иконки для наглядного списка выбора */
+    function iconThumbSvg(key) {
+      var raw = (window.GMH_ICONS && window.GMH_ICONS[key]) || "";
+      if (!raw) return "";
+      return raw.replace(/^<svg /, '<svg width="20" height="20" ').replace(/width="\d+" height="\d+"/, 'width="20" height="20"');
+    }
+    function iconPicker(value, options, keyFn) {
+      var w = el('<div class="icon-picker"><span class="ip-label">Иконка</span><div class="ip-grid"></div></div>');
+      var g = w.querySelector(".ip-grid");
+      options.forEach(function (k) {
+        var b = el('<button type="button" class="ip-btn' + (k === value ? " on" : "") + '" title="' + esc(k) + '">' +
+          '<span class="ip-ico">' + (iconThumbSvg(k) || esc(k)) + "</span><small>" + esc(ICON_LABELS[k] || k) + "</small></button>");
+        b.addEventListener("click", function () {
+          value = k; keyFn(k); markDirty();
+          g.querySelectorAll(".ip-btn").forEach(function (x) { x.classList.toggle("on", x === b); });
+        });
+        g.appendChild(b);
+      });
+      return w;
+    }
     function move(arr, i, d) { var j = i + d; if (j < 0 || j >= arr.length) return; var t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
-    function itemCard(titleText, buildBody, onRemove, onUp, onDown) {
+    function itemCard(titleText, buildBody, onRemove, onUp, onDown, noActions) {
       var c = el('<div class="item"><div class="item-head"><b></b><div class="item-actions"></div></div><div class="item-body"></div></div>');
       c.querySelector("b").textContent = titleText;
       var acts = c.querySelector(".item-actions");
-      [["↑", onUp], ["↓", onDown], ["Удалить", onRemove]].forEach(function (a) {
-        var b = el('<button type="button" class="btn btn-sm ' + (a[1] === onRemove ? "btn-red" : "btn-ghost") + '">' + a[0] + "</button>");
-        b.addEventListener("click", function () { a[1](); markDirty(); renderAll(); });
-        acts.appendChild(b);
-      });
+      if (noActions) { c.querySelector(".item-head").style.display = "none"; }
+      else {
+        [["↑", onUp], ["↓", onDown], ["Удалить", onRemove]].forEach(function (a) {
+          if (!a[1]) return;
+          var b = el('<button type="button" class="btn btn-sm ' + (a[1] === onRemove ? "btn-red" : "btn-ghost") + '">' + a[0] + "</button>");
+          b.addEventListener("click", function () { a[1](); markDirty(); renderAll(); });
+          acts.appendChild(b);
+        });
+      }
       buildBody(c.querySelector(".item-body"));
       return c;
     }
@@ -392,12 +437,37 @@
 
     function renderContacts() {
       var t = ov[curLang], p = panel("contacts"), c = card("Контакты и футер");
+      if (!t.contacts.icons) t.contacts.icons = { address: "pin", phone: "phone", email: "mail", hours: "hours" };
       c.appendChild(field("Заголовок раздела", t.contacts.heading, function (v){ t.contacts.heading = v; }));
-      c.appendChild(el('<div class="row"></div>'))
-        .appendChild(field("Телефон (в шапке и разделе)", t.nav.phone, function (v){ t.nav.phone = v; ov[curLang].nav.phone = v; }));
-      c.lastChild.appendChild(field("Email для заявок", t.contacts.email, function (v){ t.contacts.email = v; }));
-      c.appendChild(field("Адрес", t.contacts.address, function (v){ t.contacts.address = v; }, true));
-      c.appendChild(field("Режим работы", t.contacts.hours, function (v){ t.contacts.hours = v; }));
+
+      /* Адрес производства */
+      c.appendChild(itemCard("Адрес производства", function (body) {
+        body.appendChild(field("Подпись (метка)", t.contacts.addressLabel, function (v){ t.contacts.addressLabel = v; }));
+        body.appendChild(field("Значение адреса", t.contacts.address, function (v){ t.contacts.address = v; }, true));
+        body.appendChild(iconPicker(t.contacts.icons.address || "pin", CONTACT_ICON_KEYS, function (v){ t.contacts.icons.address = v; }));
+      }, null, null, null, true));
+
+      /* Телефон */
+      c.appendChild(itemCard("Телефон", function (body) {
+        body.appendChild(field("Подпись (метка)", t.contacts.phoneLabel, function (v){ t.contacts.phoneLabel = v; }));
+        body.appendChild(field("Номер телефона", t.nav.phone, function (v){ t.nav.phone = v; }));
+        body.appendChild(iconPicker(t.contacts.icons.phone || "phone", CONTACT_ICON_KEYS, function (v){ t.contacts.icons.phone = v; }));
+      }, null, null, null, true));
+
+      /* Email для заявок */
+      c.appendChild(itemCard("Email для заявок", function (body) {
+        body.appendChild(field("Подпись (метка)", t.contacts.emailLabel, function (v){ t.contacts.emailLabel = v; }));
+        body.appendChild(field("Email", t.contacts.email, function (v){ t.contacts.email = v; }));
+        body.appendChild(iconPicker(t.contacts.icons.email || "mail", CONTACT_ICON_KEYS, function (v){ t.contacts.icons.email = v; }));
+      }, null, null, null, true));
+
+      /* Режим работы */
+      c.appendChild(itemCard("Режим работы", function (body) {
+        body.appendChild(field("Подпись (метка)", t.contacts.hoursLabel, function (v){ t.contacts.hoursLabel = v; }));
+        body.appendChild(field("Значение (например: Пн–Пт: 8:00–16:45)", t.contacts.hours, function (v){ t.contacts.hours = v; }));
+        body.appendChild(iconPicker(t.contacts.icons.hours || "hours", CONTACT_ICON_KEYS, function (v){ t.contacts.icons.hours = v; }));
+      }, null, null, null, true));
+
       c.appendChild(field("Подпись к карте", t.contacts.mapLabel, function (v){ t.contacts.mapLabel = v; }));
       c.appendChild(field("Текст о компании в футере", t.footer.about, function (v){ t.footer.about = v; }, true));
       c.appendChild(field("Реквизиты в футере", t.footer.requisites, function (v){ t.footer.requisites = v; }, true));

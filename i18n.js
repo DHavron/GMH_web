@@ -111,6 +111,7 @@ const ru = {
     phoneLabel: "Телефон", emailLabel: "Email для заявок",
     email: "sales@gmhold.com", // TODO: реальная почта
     hoursLabel: "Режим работы", hours: "Пн–Пт: 8:00–16:45",
+    icons: { address: "pin", phone: "phone", email: "mail", hours: "hours" },
     mapLabel: "Карта: г. Логойск",
     // TODO: замените iframe-блок на актуальную карту Яндекс/Google с меткой предприятия.
   },
@@ -230,6 +231,7 @@ const en = {
     phoneLabel: "Phone", emailLabel: "Email for requests",
     email: "sales@gmhold.com",
     hoursLabel: "Working hours", hours: "Mon–Fri: 8:00–16:45",
+    icons: { address: "pin", phone: "phone", email: "mail", hours: "hours" },
     mapLabel: "Map: Logoisk",
   },
   footer: {

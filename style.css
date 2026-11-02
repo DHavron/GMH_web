@@ -46,8 +46,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
-.header-inner { display: flex; align-items: center; gap: 22px; min-height: 72px; }
-.logo { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: 0.3px; }
+.header-inner { display: flex; align-items: center; gap: 16px; height: 72px; }
+.logo { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: 0.3px; flex-shrink: 0; }
 .logo-icon {
   width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
   background: var(--grad-gold); color: #111; flex-shrink: 0;
@@ -55,14 +55,21 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .logo-text { font-size: 17px; line-height: 1.15; white-space: nowrap; }
 .logo-text small { display: block; font-size: 10px; font-weight: 500; color: var(--gray); letter-spacing: 2px; text-transform: uppercase; }
 
-.main-nav { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+/* Навигация всегда в одну строку: при нехватке места сжимается, а не переносится,
+   чтобы шапка не «распухала» по высоте (в т.ч. при переключении языка RU/EN) */
+.main-nav {
+  display: flex; gap: 2px; margin-left: auto; flex-wrap: nowrap;
+  min-width: 0; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
+}
+.main-nav::-webkit-scrollbar { display: none; }
 .main-nav a {
-  padding: 8px 11px; border-radius: 8px; font-size: 14.5px; color: #d1d5db;
+  padding: 8px 9px; border-radius: 8px; font-size: 14px; color: #d1d5db;
+  white-space: nowrap; flex: 0 1 auto;
   transition: color .2s, background .2s;
 }
 .main-nav a:hover { color: var(--gold); background: rgba(255, 215, 0, 0.08); }
 
-.header-actions { display: flex; align-items: center; gap: 12px; }
+.header-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .lang-switch { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .lang-switch button {
   background: transparent; border: 0; padding: 7px 12px; cursor: pointer;
@@ -88,7 +95,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .burger span { display: block; width: 20px; height: 2px; background: var(--gold); margin: 4px auto; border-radius: 2px; }
 
 @media (max-width: 1024px) {
-  .main-nav { display: none; position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; background: var(--graphite-2); padding: 12px 20px; border-bottom: 1px solid var(--line); }
+  .header-inner { height: auto; min-height: 64px; }
+  .main-nav { display: none; position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; background: var(--graphite-2); padding: 12px 20px; border-bottom: 1px solid var(--line); overflow: visible; }
   .main-nav.open { display: flex; }
   .burger { display: block; margin-left: auto; order: 5; }
   .header-phone { display: none; }

@@ -383,6 +383,39 @@
         burger.setAttribute("aria-expanded", String(open));
       });
       nav.addEventListener("click", function (e) { if (e.target.tagName === "A") nav.classList.remove("open"); });
+
+      /* Если пункты меню не помещаются в одну строку между логотипом и
+         правым блоком — переносим кнопку «Оставить заявку» во выпадающее
+         меню, чтобы ничего не обрезалось и не перекрывалось.
+         Ширина считается по scrollWidth/clientWidth навигации: если ссылки
+         шире доступной области nav — что-то не влезает. */
+      var headerCta = document.querySelector(".header-actions .btn-gold");
+      if (headerCta) {
+        var ctaHome = headerCta.parentNode;
+        var ctaNext = headerCta.nextSibling;
+        function fitHeaderNav() {
+          var wide = window.matchMedia("(min-width: 1025px)").matches;
+          var inNav = headerCta.parentNode === nav;
+          if (!wide) { // мобильный режим: вернём кнопку домой (CSS сам её скроет)
+            if (inNav) { headerCta.classList.remove("nav-cta", "nav-cta-backup"); ctaHome.insertBefore(headerCta, ctaNext); }
+            return;
+          }
+          // сначала проверим с кнопкой на месте
+          if (inNav) { headerCta.classList.remove("nav-cta", "nav-cta-backup"); ctaHome.insertBefore(headerCta, ctaNext); }
+          if (nav.scrollWidth > nav.clientWidth + 1) {
+            nav.appendChild(headerCta);
+            headerCta.classList.add("nav-cta", "nav-cta-backup");
+            // если даже без кнопки что-то не влезает — оставим как есть (скролл)
+            if (nav.scrollWidth > nav.clientWidth + 1) {
+              headerCta.classList.remove("nav-cta", "nav-cta-backup");
+              ctaHome.insertBefore(headerCta, ctaNext);
+            }
+          }
+        }
+        window.addEventListener("resize", fitHeaderNav);
+        setTimeout(fitHeaderNav, 0);
+        setInterval(fitHeaderNav, 500);
+      }
     }
     applyLang(saved === "en" ? "en" : "ru");
   }

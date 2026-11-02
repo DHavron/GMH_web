@@ -54,6 +54,9 @@
       padding: 9px 11px; color: var(--txt); font-size: 14.5px;
     }
     input:focus, textarea:focus { outline: 2px solid var(--gold); outline-offset: 1px; border-color: transparent; }
+    input[type=range] { width: 100%; accent-color: var(--gold); }
+    .hero-bg-box { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+    .hero-bg-box .btn-sm { margin-right: 8px; }
     textarea { min-height: 74px; resize: vertical; }
     .item { border: 1px dashed var(--line); border-radius: 12px; padding: 14px; margin-bottom: 12px; background: rgba(255,255,255,.02); }
     .item-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
@@ -288,6 +291,44 @@
       c.appendChild(el('<div class="row"></div>')).appendChild(field("Кнопка 1 (текст)", t.hero.ctaPrimary, function (v){ t.hero.ctaPrimary = v; }));
       c.lastChild.appendChild(field("Кнопка 2 (текст)", t.hero.ctaSecondary, function (v){ t.hero.ctaSecondary = v; }));
       c.appendChild(field("Примечание под кнопками", t.hero.note, function (v){ t.hero.note = v; }, true));
+
+      /* --- Фоновое изображение hero --- */
+      if (typeof t.hero.bgDim !== "number" || !isFinite(t.hero.bgDim)) t.hero.bgDim = 0.35;
+      var bgBox = el('<div class="hero-bg-box"></div>');
+      bgBox.appendChild(el('<p class="sub">Фоновое изображение (hero-фон):</p>'));
+      var th = el('<div class="shot-thumb" style="max-width:280px"></div>');
+      if (t.hero.bgImage) { th.appendChild(el('<img alt="" src="' + esc(t.hero.bgImage) + '">')); }
+      else { th.textContent = "Фон не задан (используется градиент по умолчанию)"; }
+      bgBox.appendChild(th);
+      var pick = el('<button type="button" class="btn btn-sm btn-ghost">📁 Загрузить / заменить фон…</button>');
+      var fin = el('<input type="file" accept="image/*" style="display:none">');
+      pick.addEventListener("click", function () { fin.click(); });
+      fin.addEventListener("change", function () {
+        var f = fin.files[0]; if (!f) return;
+        compressImage(f, function (dataUrl) { t.hero.bgImage = dataUrl; markDirty(); renderAll(); });
+      });
+      bgBox.appendChild(pick); bgBox.appendChild(fin);
+      if (t.hero.bgImage) {
+        var rm = el('<button type="button" class="btn btn-sm btn-ghost">✕ Убрать фон</button>');
+        rm.addEventListener("click", function () { t.hero.bgImage = ""; markDirty(); renderAll(); });
+        bgBox.appendChild(rm);
+      }
+      bgBox.appendChild(field("…или ссылка на файл (например images/hero.jpg)", t.hero.bgImage && t.hero.bgImage.indexOf("data:") === 0 ? "" : t.hero.bgImage, function (v){ t.hero.bgImage = v.trim(); }));
+      var dimRow = el('<div class="row"></div>');
+      var dimLbl = el('<label class="f"><span>Затемнение фона: <b class="dim-val"></b></span><input type="range" min="0" max="0.9" step="0.05"></label>');
+      var rng = dimLbl.querySelector("input[type=range]");
+      var valEl = dimLbl.querySelector(".dim-val");
+      valEl.textContent = Math.round(t.hero.bgDim * 100) + "%";
+      rng.value = t.hero.bgDim;
+      rng.addEventListener("input", function () {
+        t.hero.bgDim = parseFloat(rng.value) || 0;
+        valEl.textContent = Math.round(t.hero.bgDim * 100) + "%";
+        markDirty();
+      });
+      dimRow.appendChild(dimLbl);
+      bgBox.appendChild(dimRow);
+      c.appendChild(bgBox);
+
       p.appendChild(c);
     }
 

@@ -20,7 +20,9 @@ const ru = {
     "subtitle": "Токарные и фрезерные работы на ЧПУ. Изготавливаем детали и конструкции по чертежам заказчика — от опытных партий до серийных заказов для промышленных предприятий.",
     "ctaPrimary": "Получить расчёт (в разработке)",
     "ctaSecondary": "Наши услуги",
-    "note": "Ответ на заявку с чертежами — в течение 24 часов"
+    "note": "Ответ на заявку с чертежами — в течение 24 часов",
+    "bgDim": 0.45,
+    "bgImage": "bac_edit.png"
   },
   "stats": {
     "heading": "Предприятие и производственные мощности",
@@ -218,7 +220,9 @@ const en = {
     "subtitle": "CNC turning and milling, laser cutting, welding and steel structures. We manufacture parts and structures from customer drawings — from prototype batches to series orders for industrial enterprises.",
     "ctaPrimary": "Get a quote",
     "ctaSecondary": "Our services",
-    "note": "Reply to drawing-based requests within 24 hours"
+    "note": "Reply to drawing-based requests within 24 hours",
+    "bgDim": 0.45,
+    "bgImage": "bac_edit.png"
   },
   "stats": {
     "heading": "The company and production capacity",
@@ -418,7 +422,13 @@ const en = {
     "email": "sales@gmhold.com",
     "hoursLabel": "Working hours",
     "hours": "Mon–Fri: 8:00–16:45",
-    "mapLabel": "Map: Logoisk"
+    "mapLabel": "Map: Logoisk",
+    "icons": {
+      "address": "pin",
+      "phone": "phone",
+      "email": "mail",
+      "hours": "hours"
+    }
   },
   "footer": {
     "about": "Custom industrial metalworking: CNC turning and milling, laser cutting, welding, steel structures and powder coating.",

@@ -79,7 +79,23 @@
   /* ---------- Рендер секций ---------- */
   function render(t) {
     if (!document.getElementById("hero")) return; // не страница сайта (например, editor.html)
-    document.getElementById("hero").innerHTML =
+
+    /* Фоновое изображение hero-экрана (задаётся в редакторе, вкладка «Главный экран») */
+    var heroEl = document.getElementById("hero");
+    var bg = t.hero && typeof t.hero.bgImage === "string" ? t.hero.bgImage.trim() : "";
+    if (bg) {
+      var dimRaw = t.hero.bgDim;
+      var dim = (typeof dimRaw === "number" && isFinite(dimRaw)) ? Math.min(0.9, Math.max(0, dimRaw)) : 0.35;
+      heroEl.classList.add("has-bg");
+      heroEl.style.setProperty("--hero-bg", "url('" + bg.replace(/'/g, "%27") + "')");
+      heroEl.style.setProperty("--hero-dim", "rgba(16, 18, 24, " + dim + ")");
+    } else {
+      heroEl.classList.remove("has-bg");
+      heroEl.style.removeProperty("--hero-bg");
+      heroEl.style.removeProperty("--hero-dim");
+    }
+
+    heroEl.innerHTML =
       '<div class="container hero-inner">' +
         '<span class="badge">' + esc(t.hero.badge) + "</span>" +
         "<h1>" + esc(t.hero.title.split("—")[0]) + "<em>—" + esc(t.hero.title.split("—")[1] || "") + "</em></h1>" +

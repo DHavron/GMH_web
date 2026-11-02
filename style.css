@@ -108,6 +108,13 @@ button, input, textarea, select { font: inherit; color: inherit; }
   /* TODO: заменить на реальное фото производства:
      background-image: url('images/hero.jpg'); background-size: cover; */
 }
+/* Фоновое изображение hero задаётся в «Редакторе сайта» (вкладка «Главный экран») */
+.hero.has-bg {
+  background:
+    linear-gradient(var(--hero-dim, rgba(16, 18, 24, 0.35)), var(--hero-dim, rgba(16, 18, 24, 0.35))),
+    var(--hero-bg) center / cover no-repeat,
+    #1a1a1a;
+}
 .hero::after {
   content: ""; position: absolute; inset: auto 0 0 0; height: 120px;
   background: linear-gradient(transparent, var(--graphite));

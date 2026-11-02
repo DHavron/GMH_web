@@ -55,21 +55,43 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .logo-text { font-size: 17px; line-height: 1.15; white-space: nowrap; }
 .logo-text small { display: block; font-size: 10px; font-weight: 500; color: var(--gray); letter-spacing: 2px; text-transform: uppercase; }
 
-/* Навигация всегда в одну строку: при нехватке места сжимается, а не переносится,
-   чтобы шапка не «распухала» по высоте (в т.ч. при переключении языка RU/EN) */
+/* Навигация всегда в одну строку и никогда не залезает под правый блок:
+   main-nav занимает всё свободное место (flex-basis 0), поэтому ширина
+   рассчитывается с учётом логотипа и header-actions — наложения нет,
+   а лишнее скрывается без горизонтального скролла */
 .main-nav {
-  display: flex; gap: 2px; margin-left: auto; flex-wrap: nowrap;
-  min-width: 0; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
+  display: flex; gap: 2px; flex: 1 1 0; min-width: 0;
+  justify-content: center; flex-wrap: nowrap;
+  overflow: hidden; scrollbar-width: none; -ms-overflow-style: none;
 }
 .main-nav::-webkit-scrollbar { display: none; }
 .main-nav a {
   padding: 8px 9px; border-radius: 8px; font-size: 14px; color: #d1d5db;
-  white-space: nowrap; flex: 0 1 auto;
+  white-space: nowrap; flex: 0 0 auto;
   transition: color .2s, background .2s;
 }
 .main-nav a:hover { color: var(--gold); background: rgba(255, 215, 0, 0.08); }
 
-.header-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.header-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; margin-left: auto; }
+
+/* Промежуточные ширины: уменьшаем плотность меню, чтобы все пункты помещались */
+@media (max-width: 1360px) {
+  .main-nav { gap: 0; }
+  .main-nav a { padding: 8px 7px; font-size: 13.5px; }
+  .header-actions { gap: 10px; }
+}
+@media (max-width: 1240px) {
+  .header-inner { gap: 10px; }
+  .main-nav a { padding: 8px 5px; font-size: 13px; }
+  .lang-switch button { padding: 6px 9px; font-size: 12px; }
+  .header-phone { font-size: 13px; }
+  .header-actions .btn { padding: 10px 14px; font-size: 14px; }
+}
+/* На типичной ширине контейнера (1180px) не хватает места для 7 пунктов + телефона —
+   скрываем телефон, всё остальное остаётся в одну строку без наложений */
+@media (max-width: 1219px) and (min-width: 1025px) {
+  .header-phone { display: none; }
+}
 .lang-switch { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
 .lang-switch button {
   background: transparent; border: 0; padding: 7px 12px; cursor: pointer;

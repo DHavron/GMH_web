@@ -141,7 +141,9 @@ button, input, textarea, select { font: inherit; color: inherit; }
   .header-actions .btn { display: none; }
   .logo-text { font-size: 15px; }
 }
-
+.site-header .container {
+  width: min(1300px, 100% - 40px);
+}
 /* ---------- Hero ---------- */
 .hero {
   position: relative; overflow: hidden;
@@ -163,7 +165,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
   content: ""; position: absolute; inset: auto 0 0 0; height: 120px;
   background: linear-gradient(transparent, var(--graphite));
 }
-.hero-inner { position: relative; z-index: 1; padding: 96px 0 120px; max-width: 780px; }
+.hero-inner { position: relative; z-index: 1; padding: 120px 0 200px; max-width: 1000px; }
 .badge {
   display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px;
   border: 1px solid rgba(212, 175, 55, 0.4); background: rgba(212, 175, 55, 0.1);

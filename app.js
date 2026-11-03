@@ -403,7 +403,7 @@
           // сначала проверим с кнопкой на месте
           if (inNav) { headerCta.classList.remove("nav-cta", "nav-cta-backup"); ctaHome.insertBefore(headerCta, ctaNext); }
           if (nav.scrollWidth > nav.clientWidth + 1) {
-            nav.appendChild(headerCta);
+            // nav.appendChild(headerCta);
             headerCta.classList.add("nav-cta", "nav-cta-backup");
             // если даже без кнопки что-то не влезает — оставим как есть (скролл)
             if (nav.scrollWidth > nav.clientWidth + 1) {

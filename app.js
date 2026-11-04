@@ -3,8 +3,13 @@
   "use strict";
 
   var D = window.I18N;
-  var PHONE_TEL = "+375290000000"; // TODO: реальный телефон для tel:-ссылки
-  var EMAIL = "sales@gmhold.com"; // TODO: реальная почта
+  /* Значения по умолчанию — актуальные берутся из перевода (t.contacts.email / t.nav.phone),
+     чтобы редактор мог менять их без правки кода */
+  var PHONE_TEL_DEFAULT = "+375290000000"; // TODO: реальный телефон для tel:-ссылки
+  var EMAIL_DEFAULT = "sales@gmhold.com"; // TODO: реальная почта
+  var EMAIL = EMAIL_DEFAULT; // обновляется в render() из t.contacts.email
+  var PHONE_TEL = PHONE_TEL_DEFAULT; // обновляется в render() из t.nav.phone
+  function digits(v) { return String(v || "").replace(/[^\d+]/g, ""); }
   var ALLOWED_EXT = ["pdf", "dwg", "dxf", "zip", "rar"];
   var MAX_SIZE = 20 * 1024 * 1024; // 20 МБ
 
@@ -313,6 +318,10 @@
     var heroEl = document.getElementById("hero");
     if (!heroEl) return; // не страница сайта (например, editor.html)
 
+    /* Актуальные контакты из перевода (редактор меняет t.contacts.email / t.nav.phone) */
+    EMAIL = (t.contacts && t.contacts.email) || EMAIL_DEFAULT;
+    PHONE_TEL = digits((t.nav && t.nav.phone) || "") || PHONE_TEL_DEFAULT;
+
     renderHeroBg(heroEl, t);
 
     /* Пересобираем hero без innerHTML, чтобы слои карусели фона не затирались */
@@ -420,7 +429,7 @@
         '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">' +
         '<a class="btn btn-gold" id="ok-mail" href="#">' + esc(f.openMail) + "</a>" +
         '<button class="btn btn-ghost" id="ok-again" type="button">' + esc(f.another) + "</button></div>" +
-        '<p class="hint" style="margin-top:16px">' + esc(f.noMail) + '<a href="mailto:' + EMAIL + '" style="color:var(--gold)">' + EMAIL + "</a></p>" +
+        '<p class="hint" style="margin-top:16px">' + esc(f.noMail) + '<a href="mailto:' + esc(EMAIL) + '" style="color:var(--gold)">' + esc(EMAIL) + "</a></p>" +
       "</div></div>";
 
     var form = document.getElementById("the-form");
@@ -530,8 +539,8 @@
       '<div class="container"><div class="section-head reveal"><p class="kicker">' + esc(c.heading) + "</p><h2>" + esc(c.heading) + "</h2></div>" +
       '<div class="form-wrap"><div class="contact-list reveal">' +
         ci(icons.address || "pin", c.addressLabel, esc(c.address)) +
-        ci(icons.phone || "phone", c.phoneLabel, '<a href="tel:' + PHONE_TEL + '">' + esc(t.nav.phone) + "</a>") +
-        ci(icons.email || "mail", c.emailLabel, '<a href="mailto:' + EMAIL + '">' + EMAIL + "</a>") +
+        ci(icons.phone || "phone", c.phoneLabel, '<a href="tel:' + esc(PHONE_TEL) + '">' + esc(t.nav.phone) + "</a>") +
+        ci(icons.email || "mail", c.emailLabel, '<a href="mailto:' + esc(EMAIL) + '">' + esc(EMAIL) + "</a>") +
         ci(icons.hours || "hours", c.hoursLabel, esc(c.hours)) +
       "</div>" +
       '<div class="map-frame reveal"><iframe title="' + esc(c.mapLabel) + '" loading="lazy" referrerpolicy="no-referrer-when-downgrade" ' +
@@ -547,6 +556,17 @@
     document.getElementById("footer-nav").innerHTML = ids.map(function (id) {
       return '<li><a href="#' + id + '">' + esc(t.nav[id === "contacts" ? "contact" : id] || id) + "</a></li>";
     }).join("");
+    /* Контакты в футере — обновляем из перевода, иначе email/телефон оставались захардкожены в разметке */
+    var footerContacts = document.getElementById("footer-contacts");
+    if (footerContacts) {
+      var fcEmail = (t.contacts && t.contacts.email) || EMAIL_DEFAULT;
+      var fcPhone = digits((t.nav && t.nav.phone) || "") || PHONE_TEL_DEFAULT;
+      footerContacts.innerHTML =
+        "<li>" + esc(t.contacts.address) + "</li>" +
+        '<li><a href="tel:' + esc(fcPhone) + '">' + esc(t.nav.phone) + "</a></li>" +
+        '<li><a href="mailto:' + esc(fcEmail) + '">' + esc(fcEmail) + "</a></li>" +
+        "<li>" + esc(t.contacts.hours) + "</li>";
+    }
     document.getElementById("footer-about").textContent = t.footer.about;
     document.getElementById("footer-requisites").textContent = t.footer.requisites;
     document.getElementById("footer-rights").textContent = "© 2024–2026 ООО «ГлобалМеталлХолд». " + t.footer.rights;

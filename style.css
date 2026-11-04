@@ -162,6 +162,17 @@ button, input, textarea, select { font: inherit; color: inherit; }
   transition: opacity 1.2s ease-in-out;
 }
 .hero-bg-slide.active { opacity: 1; }
+/* Карусель выключена: одно статичное фоновое изображение без слайдов и затемнения */
+.hero.has-bg-static {
+  background-color: #1a1a1a;
+  background-image: var(--hero-bg, none),
+    radial-gradient(900px 400px at 80% -10%, rgba(255, 215, 0, 0.12), transparent 60%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.02) 0 2px, transparent 2px 14px),
+    linear-gradient(160deg, #232323 0%, #1a1a1a 55%, #202020 100%);
+  background-position: center;
+  background-size: cover, cover, auto, auto;
+  background-repeat: no-repeat;
+}
 .hero.has-bg .hero-bg-layers::after {
   content: ""; position: absolute; inset: 0;
   background: var(--hero-dim, rgba(16, 18, 24, 0.35));

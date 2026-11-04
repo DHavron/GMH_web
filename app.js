@@ -186,12 +186,14 @@
     var bg = t.hero && typeof t.hero.bgImage === "string" ? t.hero.bgImage.trim() : "";
     var carouselOn = !!(t.hero && t.hero.bgCarousel);
     var slidesList = [];
-    if (carouselOn && t.hero.bgImages && t.hero.bgImages.length) {
-      slidesList = t.hero.bgImages.filter(function (s) { return s && String(s).trim(); });
-    } else if (bg) {
-      slidesList = [bg];
+    if (carouselOn) {
+      if (t.hero.bgImages && t.hero.bgImages.length) {
+        slidesList = t.hero.bgImages.filter(function (s) { return s && String(s).trim(); });
+      } else if (bg) {
+        slidesList = [bg]; /* карусель включена, но слайдов нет — показываем фон как есть */
+      }
     }
-    if (slidesList.length) {
+    if (slidesList.length > 1) {
       var dimRaw = t.hero.bgDim;
       var dim = (typeof dimRaw === "number" && isFinite(dimRaw)) ? Math.min(0.9, Math.max(0, dimRaw)) : 0.35;
       var delay = (typeof t.hero.bgInterval === "number" && isFinite(t.hero.bgInterval))
@@ -204,10 +206,19 @@
       }).join("") + "</div>";
       heroEl.insertAdjacentHTML("afterbegin", layer);
       startHeroCarousel(Array.prototype.slice.call(heroEl.querySelectorAll(".hero-bg-slide")), delay);
+    } else if (bg) {
+      /* Карусель выключена: статичный фон через CSS-переменную, без слайдов и затемнения */
+      stopHeroCarousel();
+      heroEl.classList.add("has-bg-static");
+      heroEl.style.setProperty("--hero-bg", "url('" + bg.replace(/'/g, "%27") + "')");
+      var layer0 = heroEl.querySelector(".hero-bg-layers");
+      if (layer0) layer0.remove();
     } else {
       stopHeroCarousel();
       heroEl.classList.remove("has-bg");
+      heroEl.classList.remove("has-bg-static");
       heroEl.style.removeProperty("--hero-dim");
+      heroEl.style.removeProperty("--hero-bg");
       var oldLayer = heroEl.querySelector(".hero-bg-layers");
       if (oldLayer) oldLayer.remove();
     }

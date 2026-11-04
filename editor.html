@@ -314,6 +314,69 @@
         bgBox.appendChild(rm);
       }
       bgBox.appendChild(field("…или ссылка на файл (например images/hero.jpg)", t.hero.bgImage && t.hero.bgImage.indexOf("data:") === 0 ? "" : t.hero.bgImage, function (v){ t.hero.bgImage = v.trim(); }));
+
+      /* --- Карусель hero-фона: несколько изображений листаются по кругу --- */
+      if (typeof t.hero.bgCarousel !== "boolean") t.hero.bgCarousel = false;
+      if (!Array.isArray(t.hero.bgImages)) t.hero.bgImages = [];
+      if (typeof t.hero.bgInterval !== "number" || !isFinite(t.hero.bgInterval)) t.hero.bgInterval = 5;
+
+      var carLbl = el('<label class="f"><span style="display:inline-flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:14px;color:var(--txt);cursor:pointer">' +
+        '<input type="checkbox" style="width:auto;accent-color:var(--gold)"> Карусель hero-фона (несколько изображений автоматически листаются по кругу)</span></label>');
+      var carChk = carLbl.querySelector("input");
+      carChk.checked = t.hero.bgCarousel;
+      carChk.addEventListener("change", function () { t.hero.bgCarousel = carChk.checked; markDirty(); renderAll(); });
+      bgBox.appendChild(carLbl);
+
+      if (t.hero.bgCarousel) {
+        var carBox = el('<div class="item"></div>');
+        carBox.appendChild(el('<p class="sub">Слайды карусели (листать будут все загруженные, минимум 2 для анимации):</p>'));
+        var strip = el('<div class="shots" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))"></div>');
+        t.hero.bgImages.forEach(function (src, si) {
+          var sc = el('<div class="shot-card"><div class="shot-thumb"></div><div class="shot-body"></div></div>');
+          sc.querySelector(".shot-thumb").appendChild(el('<img alt="" src="' + esc(src) + '">'));
+          var rmB = el('<button type="button" class="btn btn-sm btn-red">✕ Убрать слайд</button>');
+          rmB.addEventListener("click", function () { t.hero.bgImages.splice(si, 1); markDirty(); renderAll(); });
+          sc.querySelector(".shot-body").appendChild(rmB);
+          strip.appendChild(sc);
+        });
+        carBox.appendChild(strip);
+        var addPick = el('<button type="button" class="btn btn-sm btn-ghost">＋ Добавить изображение в карусель…</button>');
+        var addFin = el('<input type="file" accept="image/*" multiple style="display:none">');
+        addPick.addEventListener("click", function () { addFin.click(); });
+        addFin.addEventListener("change", function () {
+          var files = Array.prototype.slice.call(addFin.files || []);
+          if (!files.length) return;
+          var pending = files.length;
+          files.forEach(function (f) {
+            compressImage(f, function (dataUrl) {
+              t.hero.bgImages.push(dataUrl);
+              if (--pending === 0) { markDirty(); renderAll(); }
+            });
+          });
+        });
+        carBox.appendChild(addPick); carBox.appendChild(addFin);
+        var linkRow = el('<div class="row"></div>');
+        linkRow.appendChild(field("…или ссылка на изображение (images/slide1.jpg)", "", function (v) {
+          if (v.trim()) { t.hero.bgImages.push(v.trim()); renderAll(); }
+        }));
+        carBox.appendChild(linkRow);
+        var intLbl = el('<label class="f"><span>Интервал смены слайдов: <b class="int-val"></b></span><input type="range" min="2" max="15" step="1"></label>');
+        var intRng = intLbl.querySelector("input[type=range]");
+        var intVal = intLbl.querySelector(".int-val");
+        intVal.textContent = t.hero.bgInterval + " сек";
+        intRng.value = Math.min(15, Math.max(2, t.hero.bgInterval));
+        intRng.addEventListener("input", function () {
+          t.hero.bgInterval = parseInt(intRng.value, 10) || 5;
+          intVal.textContent = t.hero.bgInterval + " сек";
+          markDirty();
+        });
+        carBox.appendChild(intLbl);
+        bgBox.appendChild(carBox);
+      } else if (t.hero.bgImages.length) {
+        var keepNote = el('<p class="note">Изображения карусели сохранены — включите карусель, чтобы они листались. Сейчас показывается основное фоновое изображение.</p>');
+        bgBox.appendChild(keepNote);
+      }
+
       var dimRow = el('<div class="row"></div>');
       var dimLbl = el('<label class="f"><span>Затемнение фона: <b class="dim-val"></b></span><input type="range" min="0" max="0.9" step="0.05"></label>');
       var rng = dimLbl.querySelector("input[type=range]");

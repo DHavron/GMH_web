@@ -76,25 +76,27 @@
     return getBase()[lang];
   }
 
-  /* ---------- Рендер секций ---------- */
-  function render(t) {
-    if (!document.getElementById("hero")) return; // не страница сайта (например, editor.html)
+  /* ---------- Карусель hero-фона (несколько изображений листаются по кругу) ---------- */
+  var heroCarouselTimer = null;
 
-    /* Фоновое изображение hero-экрана (задаётся в редакторе, вкладка «Главный экран») */
-    var heroEl = document.getElementById("hero");
-    var bg = t.hero && typeof t.hero.bgImage === "string" ? t.hero.bgImage.trim() : "";
-    if (bg) {
-      var dimRaw = t.hero.bgDim;
-      var dim = (typeof dimRaw === "number" && isFinite(dimRaw)) ? Math.min(0.9, Math.max(0, dimRaw)) : 0.35;
-      heroEl.classList.add("has-bg");
-      heroEl.style.setProperty("--hero-bg", "url('" + bg.replace(/'/g, "%27") + "')");
-      heroEl.style.setProperty("--hero-dim", "rgba(16, 18, 24, " + dim + ")");
-    } else {
-      heroEl.classList.remove("has-bg");
-      heroEl.style.removeProperty("--hero-bg");
-      heroEl.style.removeProperty("--hero-dim");
-    }
+  function stopHeroCarousel() {
+    if (heroCarouselTimer) { clearInterval(heroCarouselTimer); heroCarouselTimer = null; }
+  }
 
+  function startHeroCarousel(slides, delayMs) {
+    stopHeroCarousel();
+    if (slides.length < 2) return;
+    var idx = 0;
+    heroCarouselTimer = setInterval(function () {
+      slides[idx].classList.remove("active");
+      idx = (idx + 1) % slides.length;
+      slides[idx].classList.add("active");
+    }, delayMs);
+  }
+
+  /* Собираем содержимое hero, не трогая слои карусели фона (.hero-bg-layers) */
+  function rebuildHeroDOM(heroEl, t) {
+    var layer = heroEl.querySelector(".hero-bg-layers");
     heroEl.innerHTML =
       '<div class="container hero-inner">' +
         '<span class="badge">' + esc(t.hero.badge) + "</span>" +
@@ -106,6 +108,112 @@
         "</div>" +
         '<p class="hero-note">' + esc(t.hero.note) + "</p>" +
       "</div>";
+    if (layer) heroEl.insertBefore(layer, heroEl.firstChild);
+  }
+
+  /* ---------- Лайтбокс просмотра изображений портфолио ---------- */
+  var lightbox = null, lbImg = null, lbCap = null, lbCount = null, lbItems = [];
+  var lbIndex = -1;
+
+  function buildLightbox() {
+    if (lightbox) return;
+    lightbox = el("div", "lightbox hidden");
+    lightbox.setAttribute("role", "dialog");
+    lightbox.setAttribute("aria-modal", "true");
+    lightbox.setAttribute("aria-label", "Просмотр изображения");
+    lightbox.innerHTML =
+      '<button class="lb-close" type="button" aria-label="Закрыть">✕</button>' +
+      '<button class="lb-nav lb-prev" type="button" aria-label="Предыдущее">&#8249;</button>' +
+      '<figure class="lb-figure"><img alt=""><figcaption class="lb-caption"></figcaption>' +
+      '<p class="lb-counter"></p></figure>' +
+      '<button class="lb-nav lb-next" type="button" aria-label="Следующее">&#8250;</button>';
+    document.body.appendChild(lightbox);
+    lbImg = lightbox.querySelector("img");
+    lbCap = lightbox.querySelector(".lb-caption");
+    lbCount = lightbox.querySelector(".lb-counter");
+    lightbox.querySelector(".lb-close").addEventListener("click", closeLightbox);
+    lightbox.querySelector(".lb-prev").addEventListener("click", function () { stepLightbox(-1); });
+    lightbox.querySelector(".lb-next").addEventListener("click", function () { stepLightbox(1); });
+    lightbox.addEventListener("click", function (e) { if (e.target === lightbox) closeLightbox(); });
+    document.addEventListener("keydown", function (e) {
+      if (!lightbox || lightbox.classList.contains("hidden")) return;
+      if (e.key === "Escape") closeLightbox();
+      else if (e.key === "ArrowLeft") stepLightbox(-1);
+      else if (e.key === "ArrowRight") stepLightbox(1);
+    });
+  }
+
+  function showLightbox(items, index) {
+    buildLightbox();
+    lbItems = items;
+    lbIndex = index;
+    updateLightbox();
+    lightbox.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+  }
+
+  function stepLightbox(d) {
+    if (lbIndex < 0 || !lbItems.length) return;
+    lbIndex = (lbIndex + d + lbItems.length) % lbItems.length;
+    updateLightbox();
+  }
+
+  function updateLightbox() {
+    var it = lbItems[lbIndex];
+    if (!it) { closeLightbox(); return; }
+    lbImg.src = it.img;
+    lbImg.alt = it.caption || "";
+    lbCap.textContent = it.caption || "";
+    lbCap.style.display = it.caption ? "" : "none";
+    lbCount.textContent = lbItems.length > 1 ? (lbIndex + 1) + " / " + lbItems.length : "";
+    lightbox.querySelector(".lb-prev").style.display = lbItems.length > 1 ? "" : "none";
+    lightbox.querySelector(".lb-next").style.display = lbItems.length > 1 ? "" : "none";
+  }
+
+  function closeLightbox() {
+    if (!lightbox) return;
+    lightbox.classList.add("hidden");
+    document.body.style.overflow = "";
+    lbIndex = -1;
+  }
+
+  /* ---------- Рендер секций ---------- */
+  function render(t) {
+    if (!document.getElementById("hero")) return; // не страница сайта (например, editor.html)
+
+    /* Фон hero-экрана: одно изображение или карусель (задаётся в редакторе, вкладка «Главный экран») */
+    var heroEl = document.getElementById("hero");
+    var bg = t.hero && typeof t.hero.bgImage === "string" ? t.hero.bgImage.trim() : "";
+    var carouselOn = !!(t.hero && t.hero.bgCarousel);
+    var slidesList = [];
+    if (carouselOn && t.hero.bgImages && t.hero.bgImages.length) {
+      slidesList = t.hero.bgImages.filter(function (s) { return s && String(s).trim(); });
+    } else if (bg) {
+      slidesList = [bg];
+    }
+    if (slidesList.length) {
+      var dimRaw = t.hero.bgDim;
+      var dim = (typeof dimRaw === "number" && isFinite(dimRaw)) ? Math.min(0.9, Math.max(0, dimRaw)) : 0.35;
+      var delay = (typeof t.hero.bgInterval === "number" && isFinite(t.hero.bgInterval))
+        ? Math.min(30, Math.max(1, t.hero.bgInterval)) * 1000 : 5000;
+      heroEl.classList.add("has-bg");
+      heroEl.style.setProperty("--hero-dim", "rgba(16, 18, 24, " + dim + ")");
+      var layer = '<div class="hero-bg-layers" aria-hidden="true">' + slidesList.map(function (src, i) {
+        return '<div class="hero-bg-slide' + (i === 0 ? " active" : "") + '" style="' +
+          "background-image:url('" + String(src).trim().replace(/'/g, "%27") + "')\"></div>";
+      }).join("") + "</div>";
+      heroEl.insertAdjacentHTML("afterbegin", layer);
+      startHeroCarousel(Array.prototype.slice.call(heroEl.querySelectorAll(".hero-bg-slide")), delay);
+    } else {
+      stopHeroCarousel();
+      heroEl.classList.remove("has-bg");
+      heroEl.style.removeProperty("--hero-dim");
+      var oldLayer = heroEl.querySelector(".hero-bg-layers");
+      if (oldLayer) oldLayer.remove();
+    }
+
+    /* Пересобираем hero без innerHTML, чтобы слои карусели фона не затирались */
+    rebuildHeroDOM(heroEl, t);
 
     document.getElementById("about").innerHTML =
       '<div class="container">' +
@@ -138,16 +246,30 @@
           '<div class="card-icon">' + ICONS[a.icon] + "</div><h3>" + esc(a.title) + "</h3><p>" + esc(a.text) + "</p></article>";
       }).join("") + "</div></div>";
 
+    var lbItemsData = t.portfolio.items.map(function (p) {
+      return typeof p === "string" ? { caption: p, img: "" } : { caption: p.caption || "", img: p.img || "" };
+    });
     document.getElementById("portfolio").innerHTML =
       '<div class="container"><div class="section-head reveal"><p class="kicker">' + esc(t.nav.portfolio) + "</p><h2>" + esc(t.portfolio.heading) +
       "</h2><p>" + esc(t.portfolio.subheading) + "</p></div>" +
-      '<div class="gallery">' + t.portfolio.items.map(function (p, i) {
-        var cap = typeof p === "string" ? p : (p.caption || "");
-        var img = (typeof p === "object" && p.img)
-          ? '<img src="' + p.img + '" alt="' + esc(cap) + '" loading="lazy">'
+      '<div class="gallery">' + lbItemsData.map(function (p, i) {
+        var img = p.img
+          ? '<img src="' + p.img + '" alt="' + esc(p.caption) + '" loading="lazy">'
           : "";
-        return '<figure class="shot reveal" style="transition-delay:' + (i % 4) * 80 + 'ms">' + img + "<figcaption>" + esc(cap) + "</figcaption></figure>";
+        var clickable = p.img ? ' data-lb="' + i + '" role="button" tabindex="0"' : "";
+        return "<figure class=\"shot reveal" + (p.img ? " zoomable" : "") + "\" style=\"transition-delay:" + (i % 4) * 80 + 'ms"' + clickable + ">" + img + "<figcaption>" + esc(p.caption) + "</figcaption></figure>";
       }).join("") + "</div></div>";
+
+    /* Клик по фото портфолио — открывает полноэкранный просмотр */
+    document.querySelectorAll("#portfolio .shot[data-lb]").forEach(function (fig) {
+      fig.addEventListener("click", function () { showLightbox(lbItemsData, parseInt(fig.getAttribute("data-lb"), 10)); });
+      fig.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          showLightbox(lbItemsData, parseInt(fig.getAttribute("data-lb"), 10));
+        }
+      });
+    });
 
     document.getElementById("process").innerHTML =
       '<div class="container"><div class="section-head reveal"><p class="kicker">' + esc(t.nav.process) + "</p><h2>" + esc(t.process.heading) +

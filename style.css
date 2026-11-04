@@ -156,19 +156,21 @@ button, input, textarea, select { font: inherit; color: inherit; }
 }
 /* Фоновое изображение hero задаётся в «Редакторе сайта» (вкладка «Главный экран») */
 .hero.has-bg { background: #1a1a1a; }
-/* Слои карусели hero-фона: изображения листаются по кругу с плавным кроссфейдом */
+/* Слои карусели hero-фона: изображения листаются по кругу с плавным кроссфейдом.
+   .active — текущий слой; .leaving — уходящий слой, который дорисовывается под новым,
+   чтобы в момент перехода всегда было видно хотя бы одно изображение (без «провала»
+   в тёмное затемнение). Длительность смены задаёт app.js через transition-duration. */
 .hero-bg-layers { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
 .hero-bg-slide {
   position: absolute; inset: 0; opacity: 0;
   background-position: center; background-size: cover; background-repeat: no-repeat;
-  transition: opacity 1.2s ease-in-out;
+  transition: opacity 0.9s ease-in-out; /* совпадает с HERO_FADE_MS в app.js */
+  will-change: opacity;
 }
-
-/*==============*/
-
-/*=============*/
-
-.hero-bg-slide.active { opacity: 1; }
+.hero-bg-slide.active { opacity: 1; z-index: 2; }
+.hero-bg-slide.leaving { opacity: 0; z-index: 1; }
+/* Первый кадр после перерисовки без анимации — иначе фон «разгоняется» из прозрачности */
+.hero-bg-slide.no-anim { transition: none !important; }
 .hero.has-bg .hero-bg-layers::after {
   content: ""; position: absolute; inset: 0;
   background: var(--hero-dim, rgba(16, 18, 24, 0.35));

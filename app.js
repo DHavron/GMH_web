@@ -76,23 +76,80 @@
     return getBase()[lang];
   }
 
-  /* ---------- Карусель hero-фона (несколько изображений листаются по кругу) ---------- */
+  /* ---------- Карусель hero-фона (несколько изображений листаются по кругу) ----------
+     Кроссфейд сделан «внахлёст»: входящий слайд проявляется поверх уходящего, и оба
+     слоя в течение перехода управляются явно (active / leaving). За счёт этого:
+     - на переходе последний → первый нет «провала» в тёмное затемнение — хотя бы один
+       слой всегда полностью виден;
+     - шаг переключения пропускается, если предыдущий переход ещё не завершился, —
+       переходы не «слипаются» при рассинхронизации таймера;
+     - если в списке одно изображение, таймер вообще не запускается (никаких морганий). */
   var heroCarouselTimer = null;
+  var HERO_FADE_MS = 900; // базовая длительность кроссфейда — совпадает с transition в style.css
+  var leavingCleanups = []; // таймауты снятия класса .leaving (чистятся при остановке карусели)
 
   function stopHeroCarousel() {
     if (heroCarouselTimer) { clearInterval(heroCarouselTimer); heroCarouselTimer = null; }
+    leavingCleanups.forEach(clearTimeout);
+    leavingCleanups = [];
   }
 
   function startHeroCarousel(slides, delayMs) {
     stopHeroCarousel();
-    if (slides.length < 2) return;
+    if (!slides || slides.length < 2) return; // один слайд — карусель не нужна (статичный фон без морганий)
+    /* Переход короче интервала смены: слайд успевает полностью проявиться и «дождаться»
+       следующего шага — иначе на длинных переходах кажется, что фон надолго затемняется. */
+    var fade = Math.max(300, Math.min(HERO_FADE_MS, Math.floor(delayMs * 0.45)));
+    slides.forEach(function (s) { s.style.transitionDuration = fade + "ms"; });
     var idx = 0;
-    heroCarouselTimer = setInterval(function () {
-      slides[idx].classList.remove("active");
-      idx = (idx + 1) % slides.length;
-      slides[idx].classList.add("active");
-    }, delayMs);
+    var switching = false;
+    function step() {
+      if (switching) return; // не перекрывать ещё не завершившийся переход
+      switching = true;
+      var next = (idx + 1) % slides.length;
+      /* Сначала включаем новый слой (он проявляется поверх старого), и только потом
+         снимаем active со старого — старый начинает гаснуть под новым. В любой момент
+         времени хотя бы один слой полностью виден: затемнений «в пустоту» нет. */
+      slides[next].classList.add("active");
+      slides[next].classList.remove("leaving");
+      var old = slides[idx];
+      old.classList.remove("active");
+      old.classList.add("leaving");
+      idx = next;
+      var tid = setTimeout(function () {
+        old.classList.remove("leaving");
+        leavingCleanups = leavingCleanups.filter(function (x) { return x !== tid; });
+        switching = false;
+      }, fade + 80);
+      leavingCleanups.push(tid);
+    }
+    heroCarouselTimer = setInterval(step, delayMs);
   }
+
+  /* На неактивной вкладке браузера setInterval «спит», а при возврате может выдать
+     серию быстрых переключений — на время скрытия страницы останавливаем карусель,
+     при возврате перезапускаем с текущего набора слоёв. */
+  document.addEventListener("visibilitychange", function () {
+    var heroEl = document.getElementById("hero");
+    if (!heroEl) return;
+    if (document.hidden) {
+      stopHeroCarousel();
+    } else if (lastHeroDelay && lastHeroSlidesEls.length >= 2 &&
+               heroEl.contains(lastHeroSlidesEls[0])) {
+      startHeroCarousel(lastHeroSlidesEls, lastHeroDelay);
+    }
+  });
+
+  /* Синхронизация с редактором сайта: если index.html открыт в другой вкладке,
+     применяем сохранённые правки (в т.ч. настройки фона hero) без перезагрузки. */
+  window.addEventListener("storage", function (e) {
+    if (e.key !== OVERRIDE_KEY || !document.getElementById("hero")) return;
+    try {
+      var ovNow = e.newValue ? JSON.parse(e.newValue) : null;
+      var lang = document.documentElement.lang === "en" ? "en" : "ru";
+      if (ovNow && ovNow[lang]) render(ovNow[lang]);
+    } catch (err) { /* некорректные данные игнорируем */ }
+  });
 
   /* Собираем содержимое hero, не трогая слои карусели фона (.hero-bg-layers) */
   function rebuildHeroDOM(heroEl, t) {
@@ -178,11 +235,13 @@
   }
 
   /* ---------- Рендер секций ---------- */
-  function render(t) {
-    if (!document.getElementById("hero")) return; // не страница сайта (например, editor.html)
+  var heroRenderSeq = 0;          // счётчик перерисовок фона: устаревшие колбэки не должны трогать новые слои
+  var lastHeroSlidesKey = "";     // подпись последнего построенного набора слайдов (чтобы не пересоздавать DOM зря)
+  var lastHeroSlidesEls = [];     // текущие DOM-слои карусели (для перезапуска после скрытия вкладки)
+  var lastHeroDelay = 0;          // актуальный интервал смены слайдов
 
+  function renderHeroBg(heroEl, t) {
     /* Фон hero-экрана: одно изображение или карусель (задаётся в редакторе, вкладка «Главный экран») */
-    var heroEl = document.getElementById("hero");
     var bg = t.hero && typeof t.hero.bgImage === "string" ? t.hero.bgImage.trim() : "";
     var carouselOn = !!(t.hero && t.hero.bgCarousel);
     var slidesList = [];
@@ -191,26 +250,70 @@
     } else if (bg) {
       slidesList = [bg];
     }
-    if (slidesList.length) {
-      var dimRaw = t.hero.bgDim;
-      var dim = (typeof dimRaw === "number" && isFinite(dimRaw)) ? Math.min(0.9, Math.max(0, dimRaw)) : 0.35;
-      var delay = (typeof t.hero.bgInterval === "number" && isFinite(t.hero.bgInterval))
-        ? Math.min(30, Math.max(1, t.hero.bgInterval)) * 1000 : 5000;
-      heroEl.classList.add("has-bg");
-      heroEl.style.setProperty("--hero-dim", "rgba(16, 18, 24, " + dim + ")");
+    var dimRaw = t.hero.bgDim;
+    var dim = (typeof dimRaw === "number" && isFinite(dimRaw)) ? Math.min(0.9, Math.max(0, dimRaw)) : 0.35;
+    var delay = (typeof t.hero.bgInterval === "number" && isFinite(t.hero.bgInterval))
+      ? Math.min(30, Math.max(1, t.hero.bgInterval)) * 1000 : 5000;
+    /* Ключ набора слайдов: если он не изменился (например, просто сменили язык),
+       DOM фона не трогаем — только перезапускаем таймер. Пересоздание слоёв каждый
+       раз вызывало лишнее мерцание/«затемнение» фона. */
+    var key = JSON.stringify([slidesList, dim]);
+
+    if (!slidesList.length) {
+      heroRenderSeq++;
+      lastHeroSlidesKey = "";
+      lastHeroSlidesEls = [];
+      lastHeroDelay = 0;
+      stopHeroCarousel();
+      heroEl.classList.remove("has-bg");
+      heroEl.style.removeProperty("--hero-dim");
+      var oldLayerOff = heroEl.querySelector(".hero-bg-layers");
+      if (oldLayerOff) oldLayerOff.remove();
+      return;
+    }
+
+    heroEl.classList.add("has-bg");
+    heroEl.style.setProperty("--hero-dim", "rgba(16, 18, 24, " + dim + ")");
+    lastHeroDelay = delay;
+
+    var slidesEls = Array.prototype.slice.call(heroEl.querySelectorAll(".hero-bg-slide"));
+    if (key !== lastHeroSlidesKey || slidesEls.length !== slidesList.length) {
+      lastHeroSlidesKey = key;
+      heroRenderSeq++;
+      stopHeroCarousel();
+      var oldLayer = heroEl.querySelector(".hero-bg-layers");
+      if (oldLayer) oldLayer.remove();
       var layer = '<div class="hero-bg-layers" aria-hidden="true">' + slidesList.map(function (src, i) {
         return '<div class="hero-bg-slide' + (i === 0 ? " active" : "") + '" style="' +
           "background-image:url('" + String(src).trim().replace(/'/g, "%27") + "')\"></div>";
       }).join("") + "</div>";
       heroEl.insertAdjacentHTML("afterbegin", layer);
-      startHeroCarousel(Array.prototype.slice.call(heroEl.querySelectorAll(".hero-bg-slide")), delay);
+      var seq = heroRenderSeq;
+      var newSlides = Array.prototype.slice.call(heroEl.querySelectorAll(".hero-bg-slide"));
+      /* Первый кадр без анимации проявления — иначе при каждой перерисовке фона
+         изображение «разгоняется» из нуля и кажется, что фон затемняется. */
+      newSlides.forEach(function (s) { s.classList.add("no-anim"); });
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          if (seq !== heroRenderSeq || !document.getElementById("hero")) return;
+          newSlides.forEach(function (s) { s.classList.remove("no-anim"); });
+          lastHeroSlidesEls = newSlides;
+          startHeroCarousel(newSlides, delay);
+        });
+      });
     } else {
-      stopHeroCarousel();
-      heroEl.classList.remove("has-bg");
-      heroEl.style.removeProperty("--hero-dim");
-      var oldLayer = heroEl.querySelector(".hero-bg-layers");
-      if (oldLayer) oldLayer.remove();
+      /* Набор тот же — просто перезапускаем таймер с актуальным интервалом,
+         не сбрасывая текущий показанный слайд */
+      lastHeroSlidesEls = slidesEls;
+      startHeroCarousel(slidesEls, delay);
     }
+  }
+
+  function render(t) {
+    var heroEl = document.getElementById("hero");
+    if (!heroEl) return; // не страница сайта (например, editor.html)
+
+    renderHeroBg(heroEl, t);
 
     /* Пересобираем hero без innerHTML, чтобы слои карусели фона не затирались */
     rebuildHeroDOM(heroEl, t);

@@ -1,1 +1,1 @@
-"www.gmhold.com" 
+www.gmhold.com

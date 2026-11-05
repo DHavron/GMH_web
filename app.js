@@ -329,7 +329,7 @@
 
     document.getElementById("about").innerHTML =
       '<div class="container">' +
-        '<div class="section-head reveal"><p class="kicker">GlobalMetalHold</p><h2>' + esc(t.stats.heading) + "</h2>" +
+        '<div class="container"><div class="section-head reveal"><p class="kicker">' + esc(t.stats.heading) + "</h2>" +
         "<p>" + esc(t.stats.lead) + "</p></div>" +
         '<div class="stats-grid">' + t.stats.items.map(function (s, i) {
           return '<div class="stat reveal" style="transition-delay:' + i * 90 + 'ms"><b>' + esc(s[0]) + "</b><span>" + esc(s[1]) + "</span></div>";

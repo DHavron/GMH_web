@@ -95,6 +95,13 @@
     .ip-ico svg { width: 22px; height: 22px; }
     .ip-btn small { font-size: 10.5px; color: var(--gray); text-align: center; line-height: 1.25; }
     .ip-btn.on small { color: var(--txt); }
+    .mode-sw { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 14px; }
+    .mode-sw button { background: var(--bg3); border: 1px solid var(--line); color: var(--txt); padding: 8px 14px; border-radius: 9px; cursor: pointer; font-size: 14px; }
+    .mode-sw button:hover { border-color: var(--gold-deep); }
+    .mode-sw button.on { background: linear-gradient(135deg, var(--gold), var(--gold-deep)); color: #111; font-weight: 700; border-color: transparent; }
+    .video-prev { max-width: 360px; aspect-ratio: 16/9; background: #111; border-radius: 10px; overflow: hidden; display: grid; place-items: center; color: var(--gray); font-size: 12px; text-align: center; padding: 8px; margin-bottom: 10px; }
+    .video-prev video { width: 100%; height: 100%; object-fit: cover; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
   </style>
 </head>
 <body>
@@ -105,12 +112,15 @@
     </div>
     <nav class="tabs" id="tabs">
       <button class="tab active" data-panel="hero">Главный экран</button>
+      <button class="tab" data-panel="header">Шапка сайта</button>
       <button class="tab" data-panel="about">О компании</button>
       <button class="tab" data-panel="services">Услуги</button>
       <button class="tab" data-panel="equipment">Оборудование</button>
       <button class="tab" data-panel="advantages">Преимущества</button>
       <button class="tab" data-panel="portfolio">Портфолио</button>
       <button class="tab" data-panel="process">Этапы</button>
+      <button class="tab" data-panel="history">История</button>
+      <button class="tab" data-panel="mail">Почта</button>
       <button class="tab" data-panel="contacts">Контакты</button>
     </nav>
     <div class="langsw" id="langsw">
@@ -130,12 +140,15 @@
     </div>
 
     <section class="panel active" id="p-hero"></section>
+    <section class="panel" id="p-header"></section>
     <section class="panel" id="p-about"></section>
     <section class="panel" id="p-services"></section>
     <section class="panel" id="p-equipment"></section>
     <section class="panel" id="p-advantages"></section>
     <section class="panel" id="p-portfolio"></section>
     <section class="panel" id="p-process"></section>
+    <section class="panel" id="p-history"></section>
+    <section class="panel" id="p-mail"></section>
     <section class="panel" id="p-contacts"></section>
   </main>
 
@@ -182,6 +195,24 @@
     var ov = readJSON(OVERRIDE_KEY);
     if (!ov || !ov.ru || !ov.en) { ov = { ru: deepCopy(window.I18N.ru), en: deepCopy(window.I18N.en) }; }
     var dirty = false, curLang = "ru";
+    /* Совместимость со старыми данными: добавляем раздел «История» и пункт меню, если их ещё нет */
+    function ensureDefaults() {
+      ["ru", "en"].forEach(function (l) {
+        var t = ov[l], ru = l === "ru";
+        if (!t.nav.history) t.nav.history = ru ? "История" : "History";
+        if (!t.nav.tagline) t.nav.tagline = ru ? "металлообработка" : "metalworking";
+        if (!t.mail || typeof t.mail !== "object") t.mail = {};
+        if (typeof t.mail.enabled !== "boolean") t.mail.enabled = true;
+        if (!t.mail.endpoint) t.mail.endpoint = "send.php";
+        if (!(t.mail.maxFileMb > 0)) t.mail.maxFileMb = 20;
+        if (!t.header) t.header = {};
+        if (!Array.isArray(t.header.hidden)) t.header.hidden = [];
+        if (!Array.isArray(t.header.order)) t.header.order = [];
+        if (!t.history) t.history = { heading: ru ? "История компании" : "Company history", subheading: "", emptyText: ru ? "Записи появятся здесь в ближайшее время." : "Entries will appear here soon.", items: [] };
+        if (!Array.isArray(t.history.items)) t.history.items = [];
+        t.history.items.forEach(function (it) { if (!it.id) it.id = uid(); if (!Array.isArray(it.photos)) it.photos = []; });
+      });
+    }
 
     /* ---------- Утилиты DOM ---------- */
     function esc(s) {
@@ -292,42 +323,122 @@
       c.lastChild.appendChild(field("Кнопка 2 (текст)", t.hero.ctaSecondary, function (v){ t.hero.ctaSecondary = v; }));
       c.appendChild(field("Примечание под кнопками", t.hero.note, function (v){ t.hero.note = v; }, true));
 
-      /* --- Фоновое изображение hero --- */
+      /* --- Фон hero: три режима (изображение / карусель / видео) --- */
       if (typeof t.hero.bgDim !== "number" || !isFinite(t.hero.bgDim)) t.hero.bgDim = 0.35;
-      var bgBox = el('<div class="hero-bg-box"></div>');
-      bgBox.appendChild(el('<p class="sub">Фоновое изображение (hero-фон):</p>'));
-      var th = el('<div class="shot-thumb" style="max-width:280px"></div>');
-      if (t.hero.bgImage) { th.appendChild(el('<img alt="" src="' + esc(t.hero.bgImage) + '">')); }
-      else { th.textContent = "Фон не задан (используется градиент по умолчанию)"; }
-      bgBox.appendChild(th);
-      var pick = el('<button type="button" class="btn btn-sm btn-ghost">📁 Загрузить / заменить фон…</button>');
-      var fin = el('<input type="file" accept="image/*" style="display:none">');
-      pick.addEventListener("click", function () { fin.click(); });
-      fin.addEventListener("change", function () {
-        var f = fin.files[0]; if (!f) return;
-        compressImage(f, function (dataUrl) { t.hero.bgImage = dataUrl; markDirty(); renderAll(); });
-      });
-      bgBox.appendChild(pick); bgBox.appendChild(fin);
-      if (t.hero.bgImage) {
-        var rm = el('<button type="button" class="btn btn-sm btn-ghost">✕ Убрать фон</button>');
-        rm.addEventListener("click", function () { t.hero.bgImage = ""; markDirty(); renderAll(); });
-        bgBox.appendChild(rm);
-      }
-      bgBox.appendChild(field("…или ссылка на файл (например images/hero.jpg)", t.hero.bgImage && t.hero.bgImage.indexOf("data:") === 0 ? "" : t.hero.bgImage, function (v){ t.hero.bgImage = v.trim(); }));
-
-      /* --- Карусель hero-фона: несколько изображений листаются по кругу --- */
       if (typeof t.hero.bgCarousel !== "boolean") t.hero.bgCarousel = false;
       if (!Array.isArray(t.hero.bgImages)) t.hero.bgImages = [];
       if (typeof t.hero.bgInterval !== "number" || !isFinite(t.hero.bgInterval)) t.hero.bgInterval = 5;
+      var mode = t.hero.bgMode || (t.hero.bgCarousel ? "carousel" : "image");
+      var bgBox = el('<div class="hero-bg-box"></div>');
+      bgBox.appendChild(el('<p class="sub">Фон главного экрана (hero) — выберите вариант:</p>'));
+      var sw = el('<div class="mode-sw"></div>');
+      [["image", "Статическое изображение"], ["carousel", "Карусель изображений"], ["video", "Фоновое видео"]].forEach(function (m) {
+        var b = el('<button type="button" class="' + (mode === m[0] ? "on" : "") + '">' + m[1] + "</button>");
+        b.addEventListener("click", function () {
+          /* режим общий для RU и EN, чтобы на обоих языках фон был одинаковым по типу */
+          ["ru", "en"].forEach(function (l) { ov[l].hero.bgMode = m[0]; ov[l].hero.bgCarousel = (m[0] === "carousel"); });
+          markDirty(); renderAll();
+        });
+        sw.appendChild(b);
+      });
+      bgBox.appendChild(sw);
 
-      var carLbl = el('<label class="f"><span style="display:inline-flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:14px;color:var(--txt);cursor:pointer">' +
-        '<input type="checkbox" style="width:auto;accent-color:var(--gold)"> Карусель hero-фона (несколько изображений автоматически листаются по кругу)</span></label>');
-      var carChk = carLbl.querySelector("input");
-      carChk.checked = t.hero.bgCarousel;
-      carChk.addEventListener("change", function () { t.hero.bgCarousel = carChk.checked; markDirty(); renderAll(); });
-      bgBox.appendChild(carLbl);
+      if (mode === "image" || mode === "video") {
+        bgBox.appendChild(el('<p class="sub">' + (mode === "video"
+          ? "Постер — изображение, которое видно, пока видео загружается (и если видео не воспроизводится):"
+          : "Фоновое изображение:") + "</p>"));
+        var th = el('<div class="shot-thumb" style="max-width:280px"></div>');
+        if (t.hero.bgImage) { th.appendChild(el('<img alt="" src="' + esc(t.hero.bgImage) + '">')); }
+        else { th.textContent = mode === "video" ? "Постер не задан" : "Фон не задан (используется градиент по умолчанию)"; }
+        bgBox.appendChild(th);
+        var pick = el('<button type="button" class="btn btn-sm btn-ghost">📁 Загрузить / заменить изображение…</button>');
+        var fin = el('<input type="file" accept="image/*" style="display:none">');
+        pick.addEventListener("click", function () { fin.click(); });
+        fin.addEventListener("change", function () {
+          var f = fin.files[0]; if (!f) return;
+          compressImage(f, function (dataUrl) { t.hero.bgImage = dataUrl; markDirty(); renderAll(); });
+        });
+        bgBox.appendChild(pick); bgBox.appendChild(fin);
+        if (t.hero.bgImage) {
+          var rm = el('<button type="button" class="btn btn-sm btn-ghost">✕ Убрать</button>');
+          rm.addEventListener("click", function () { t.hero.bgImage = ""; markDirty(); renderAll(); });
+          bgBox.appendChild(rm);
+        }
+        bgBox.appendChild(field("…или ссылка на файл (например images/hero.jpg)", t.hero.bgImage && t.hero.bgImage.indexOf("data:") === 0 ? "" : t.hero.bgImage, function (v){ t.hero.bgImage = v.trim(); }));
+      }
 
-      if (t.hero.bgCarousel) {
+      if (mode === "video") {
+        var vBox = el('<div class="item"></div>');
+        vBox.appendChild(el('<p class="sub">Фоновое видео (MP4 / WebM). Воспроизводится без звука, по кругу, на весь экран. Лучше короткий ролик до 10–15 МБ.</p>'));
+        var prev = el('<div class="video-prev">Видео не загружено</div>');
+        vBox.appendChild(prev);
+        function showPrev(src) {
+          prev.textContent = "";
+          var v = document.createElement("video");
+          v.muted = true; v.loop = true; v.playsInline = true; v.controls = true; v.src = src;
+          prev.appendChild(v);
+        }
+        if (t.hero.bgVideoLocal && window.GMH_VIDEO) {
+          window.GMH_VIDEO.get(function (blob) {
+            if (blob) showPrev(URL.createObjectURL(blob));
+            else if (t.hero.bgVideo) showPrev(t.hero.bgVideo);
+          });
+        } else if (t.hero.bgVideo) { showPrev(t.hero.bgVideo); }
+
+        var row = el('<div class="btn-row"></div>');
+        var vPick = el('<button type="button" class="btn btn-sm btn-ghost">📁 Загрузить / заменить видео…</button>');
+        var vFin = el('<input type="file" accept="video/mp4,video/webm,video/ogg,video/*" style="display:none">');
+        vPick.addEventListener("click", function () { vFin.click(); });
+        vFin.addEventListener("change", function () {
+          var f = vFin.files[0]; if (!f) return;
+          if (f.size > 60 * 1024 * 1024) { toast("Файл больше 60 МБ — сожмите видео (для фона достаточно 720p–1080p).", true); return; }
+          var ext = (f.name.split(".").pop() || "mp4").toLowerCase().replace(/[^a-z0-9]/g, "") || "mp4";
+          window.GMH_VIDEO.put(f, function (ok) {
+            if (!ok) { toast("Не удалось сохранить видео в браузере. Укажите путь к файлу вручную.", true); return; }
+            ["ru", "en"].forEach(function (l) {
+              ov[l].hero.bgVideoLocal = true; ov[l].hero.bgVideoStamp = Date.now(); ov[l].hero.bgVideoName = f.name;
+              ov[l].hero.bgVideo = "video/hero-bg." + ext;
+            });
+            markDirty(); renderAll();
+            toast("Видео загружено. Для публикации скачайте файл видео и положите в папку video.");
+          });
+        });
+        row.appendChild(vPick); row.appendChild(vFin);
+        if (t.hero.bgVideoLocal) {
+          var vDl = el('<button type="button" class="btn btn-sm btn-ghost">⬇ Скачать видеофайл для публикации</button>');
+          vDl.addEventListener("click", function () {
+            window.GMH_VIDEO.get(function (blob) {
+              if (!blob) { toast("Видео не найдено в этом браузере — загрузите его заново.", true); return; }
+              var a = document.createElement("a");
+              a.href = URL.createObjectURL(blob);
+              a.download = (t.hero.bgVideo || "video/hero-bg.mp4").split("/").pop();
+              document.body.appendChild(a); a.click(); a.remove();
+            });
+          });
+          row.appendChild(vDl);
+        }
+        if (t.hero.bgVideo || t.hero.bgVideoLocal) {
+          var vRm = el('<button type="button" class="btn btn-sm btn-red">✕ Убрать видео</button>');
+          vRm.addEventListener("click", function () {
+            window.GMH_VIDEO.remove(function () {
+              ["ru", "en"].forEach(function (l) { ov[l].hero.bgVideoLocal = false; ov[l].hero.bgVideoName = ""; ov[l].hero.bgVideo = ""; });
+              markDirty(); renderAll();
+            });
+          });
+          row.appendChild(vRm);
+        }
+        vBox.appendChild(row);
+        vBox.appendChild(field("Путь к видеофайлу на сайте (например video/hero-bg.mp4)", t.hero.bgVideo || "", function (v) {
+          ["ru", "en"].forEach(function (l) { ov[l].hero.bgVideo = v.trim(); });
+        }));
+        vBox.appendChild(el('<p class="note"><b>Как опубликовать:</b> загруженное видео хранится только в этом браузере — так вы проверяете результат. ' +
+          'Чтобы его видели посетители, нажмите «Скачать видеофайл», положите его в папку <code>video</code> рядом с <code>index.html</code> ' +
+          '(имя и путь — как в поле выше), затем сделайте «Экспорт JSON» и замените <code>site-data.json</code>.' +
+          (t.hero.bgVideoName ? " Загружено: <code>" + esc(t.hero.bgVideoName) + "</code>." : "") + "</p>"));
+        bgBox.appendChild(vBox);
+      }
+
+      if (mode === "carousel") {
         var carBox = el('<div class="item"></div>');
         carBox.appendChild(el('<p class="sub">Слайды карусели (листать будут все загруженные, минимум 2 для анимации):</p>'));
         var strip = el('<div class="shots" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))"></div>');
@@ -372,9 +483,6 @@
         });
         carBox.appendChild(intLbl);
         bgBox.appendChild(carBox);
-      } else if (t.hero.bgImages.length) {
-        var keepNote = el('<p class="note">Изображения карусели сохранены — включите карусель, чтобы они листались. Сейчас показывается основное фоновое изображение.</p>');
-        bgBox.appendChild(keepNote);
       }
 
       var dimRow = el('<div class="row"></div>');
@@ -539,6 +647,314 @@
       p.appendChild(cl);
     }
 
+    function uid() { return "h" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+    function renderHistory() {
+      var t = ov[curLang], p = panel("history"), c = card("Страница «История» (history.html)");
+      c.appendChild(field("Заголовок страницы", t.history.heading, function (v){ t.history.heading = v; }));
+      c.appendChild(field("Подзаголовок (необязательно)", t.history.subheading, function (v){ t.history.subheading = v; }, true));
+      p.appendChild(c);
+
+      var cl = card("Записи истории — порядок на странице задаётся стрелками ↑ ↓");
+      if (curLang === "en") {
+        cl.appendChild(el('<p class="note" style="margin:0 0 10px">Записи и фото связаны с русской версией по внутреннему id: если в английской записи нет своих фото, на сайте показываются фото из русской.</p>'));
+        var cp = el('<button type="button" class="btn btn-sm btn-ghost" style="margin-bottom:12px">⇪ Добавить недостающие записи из RU (для перевода)</button>');
+        cp.addEventListener("click", function () {
+          var have = {}; t.history.items.forEach(function (x) { if (x.id) have[x.id] = 1; });
+          var n = 0;
+          ov.ru.history.items.forEach(function (x) {
+            if (x.id && !have[x.id]) { t.history.items.push({ id: x.id, date: x.date, text: x.text, photos: [] }); n++; }
+          });
+          markDirty(); renderAll(); toast(n ? "Добавлено записей: " + n + ". Переведите тексты." : "Все записи уже есть.");
+        });
+        cl.appendChild(cp);
+      }
+      t.history.items.forEach(function (it, i) {
+        if (!Array.isArray(it.photos)) it.photos = [];
+        cl.appendChild(itemCard("Запись " + (i + 1) + (it.date ? ": " + it.date : ""), function (body) {
+          body.appendChild(field("Дата или период (любой текст: 2026, апрель 2026, 2020–2026)", it.date, function (v){ it.date = v; }));
+          var ta = field("Описание событий (абзацы — с новой строки)", it.text, function (v){ it.text = v; }, true);
+          ta.querySelector("textarea").style.minHeight = "140px";
+          body.appendChild(ta);
+
+          body.appendChild(el('<p class="sub">Фотографии — на сайте открываются по клику в полноэкранном просмотре:</p>'));
+          if (curLang === "en" && !it.photos.length && it.id) {
+            var twin = ov.ru.history.items.filter(function (x) { return x.id === it.id; })[0];
+            if (twin && twin.photos && twin.photos.length) body.appendChild(el('<p class="note">Фото из русской версии: ' + twin.photos.length + " шт. (используются автоматически)</p>"));
+          }
+          var strip = el('<div class="shots" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"></div>');
+          it.photos.forEach(function (ph, pi) {
+            var sc = el('<div class="shot-card"><div class="shot-thumb"></div><div class="shot-body"></div></div>');
+            sc.querySelector(".shot-thumb").appendChild(el('<img alt="" src="' + esc(ph.img) + '">'));
+            var sb = sc.querySelector(".shot-body");
+            sb.appendChild(field("Подпись", ph.caption, function (v){ ph.caption = v; }));
+            var acts = el('<div class="item-actions"></div>');
+            [["←", function () { move(it.photos, pi, -1); }, "btn-ghost"], ["→", function () { move(it.photos, pi, 1); }, "btn-ghost"],
+             ["✕", function () { it.photos.splice(pi, 1); }, "btn-red"]].forEach(function (a) {
+              var b = el('<button type="button" class="btn btn-sm ' + a[2] + '">' + a[0] + "</button>");
+              b.addEventListener("click", function () { a[1](); markDirty(); renderAll(); });
+              acts.appendChild(b);
+            });
+            sb.appendChild(acts);
+            strip.appendChild(sc);
+          });
+          body.appendChild(strip);
+          var addP = el('<button type="button" class="btn btn-sm btn-ghost" style="margin-top:10px">＋ Загрузить фотографии…</button>');
+          var addF = el('<input type="file" accept="image/*" multiple style="display:none">');
+          addP.addEventListener("click", function () { addF.click(); });
+          addF.addEventListener("change", function () {
+            var files = Array.prototype.slice.call(addF.files || []);
+            if (!files.length) return;
+            var pending = files.length;
+            files.forEach(function (f) {
+              compressImage(f, function (dataUrl) {
+                it.photos.push({ img: dataUrl, caption: "" });
+                if (--pending === 0) { markDirty(); renderAll(); }
+              });
+            });
+          });
+          body.appendChild(addP); body.appendChild(addF);
+          body.appendChild(field("…или ссылка на фото (например photos/history1.jpg) — добавится, когда уберёте фокус с поля", "", function () {}));
+          var linkInp = body.lastChild.querySelector("input");
+          linkInp.addEventListener("change", function () {
+            if (linkInp.value.trim()) { it.photos.push({ img: linkInp.value.trim(), caption: "" }); markDirty(); renderAll(); }
+          });
+        }, function () { t.history.items.splice(i, 1); },
+           function () { move(t.history.items, i, -1); },
+           function () { move(t.history.items, i, 1); }));
+      });
+      cl.appendChild(addBtn("Добавить запись", function () { t.history.items.push({ id: uid(), date: "", text: "", photos: [] }); }));
+      cl.appendChild(el('<p class="note">Фото сжимаются до 1200 px и хранятся внутри JSON. Если фотографий много (десятки), лучше класть файлы в папку сайта и указывать ссылки — иначе файл данных и память браузера переполнятся.</p>'));
+      p.appendChild(cl);
+    }
+
+    /* Кнопки шапки на главной странице и на странице «История» */
+    var HEADER_MENU = [
+      ["about", "О компании", "блок «О компании»"], ["services", "Услуги", "блок «Услуги»"],
+      ["equipment", "Оборудование", "блок «Оборудование»"], ["advantages", "Преимущества", "блок «Преимущества»"],
+      ["portfolio", "Портфолио", "блок «Портфолио»"], ["process", "Этапы", "блок «Этапы сотрудничества»"],
+      ["history", "История", "страница history.html"], ["contact", "Контакты", "блок «Контакты»"]
+    ];
+    var HEADER_EXTRA = [
+      ["cta", "Кнопка «Оставить заявку»", "форма заявки"], ["phone", "Телефон в шапке", "блок «Контакты»"]
+    ];
+    /* Текущая последовательность пунктов меню: сохранённый порядок + недостающие в конце */
+    function menuOrder() {
+      var saved = (ov.ru.header.order || []).filter(function (k) { return HEADER_MENU.some(function (m) { return m[0] === k; }); });
+      HEADER_MENU.forEach(function (m) { if (saved.indexOf(m[0]) === -1) saved.push(m[0]); });
+      return saved;
+    }
+    function setMenuOrder(list) { ov.ru.header.order = list.slice(); ov.en.header.order = list.slice(); }
+    function setHidden(list) { ov.ru.header.hidden = list.slice(); ov.en.header.hidden = list.slice(); }
+    function headerRow(it, arrows) {
+      var row = el('<div style="display:flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--line);border-radius:10px;padding:8px 14px;margin-bottom:8px">' +
+        '<label style="display:flex;align-items:center;gap:12px;cursor:pointer;flex:1;min-width:0"><input type="checkbox" style="width:auto;accent-color:var(--gold)">' +
+        '<span class="hr-name" style="font-size:14.5px"></span><small class="hr-hint" style="margin-left:auto;color:var(--gray)"></small></label>' +
+        '<span class="item-actions"></span></div>');
+      var chk = row.querySelector("input");
+      chk.checked = ov.ru.header.hidden.indexOf(it[0]) === -1;
+      row.querySelector(".hr-name").textContent = it[1];
+      row.querySelector(".hr-hint").textContent = it[2];
+      chk.addEventListener("change", function () {
+        var list = ov.ru.header.hidden.filter(function (k) { return k !== it[0]; });
+        if (!chk.checked) list.push(it[0]);
+        setHidden(list); markDirty();
+      });
+      if (arrows) {
+        var acts = row.querySelector(".item-actions");
+        [["↑", -1], ["↓", 1]].forEach(function (a) {
+          var b = el('<button type="button" class="btn btn-sm btn-ghost" title="' + (a[1] < 0 ? "Выше" : "Ниже") + '">' + a[0] + "</button>");
+          b.addEventListener("click", function () {
+            var ord = menuOrder(), i = ord.indexOf(it[0]);
+            move(ord, i, a[1]); setMenuOrder(ord); markDirty(); renderAll();
+          });
+          acts.appendChild(b);
+        });
+      }
+      return row;
+    }
+    function renderHeaderPanel() {
+      var p = panel("header"), c = card("Меню в шапке — порядок и видимость пунктов");
+      c.appendChild(el('<p class="sub">Стрелками ↑ ↓ меняется последовательность кнопок в шапке, галочкой — показывать кнопку или нет. ' +
+        'Скрытие не удаляет блок: он остаётся на странице, пропадает только кнопка. Настройки общие для RU и EN ' +
+        'и действуют на главной странице и на странице «История».</p>'));
+      var byKey = {}; HEADER_MENU.forEach(function (m) { byKey[m[0]] = m; });
+      menuOrder().forEach(function (k) { c.appendChild(headerRow(byKey[k], true)); });
+      p.appendChild(c);
+      var c2 = card("Правая часть шапки");
+      HEADER_EXTRA.forEach(function (it) { c2.appendChild(headerRow(it, false)); });
+      p.appendChild(c2);
+    }
+
+    /* ---------- Почта: отправка заявок через SMTP (send.php на хостинге) ----------
+       Публичные настройки (вкл/выкл, адрес скрипта, макс. размер файла) хранятся в данных сайта (ov.*.mail).
+       Параметры SMTP и ПАРОЛЬ в данные сайта НЕ попадают: пароль живёт только в памяти этой страницы,
+       а на сервер уходит файлом mail-config.php, который вы скачиваете отсюда и загружаете на хостинг. */
+    var MAIL_LS = "gmh-mail-settings-v1";
+    var mailSettings = { host: "", port: 465, secure: "ssl", username: "", password: "", from_email: "", from_name: "ГлобалМеталлХолд",
+      to_email: "", subject_prefix: "[Заявка с сайта]", big_file_mb: 15 };
+    try {
+      var savedMail = JSON.parse(localStorage.getItem(MAIL_LS) || "null");
+      if (savedMail && typeof savedMail === "object") Object.keys(savedMail).forEach(function (k) { if (k !== "password") mailSettings[k] = savedMail[k]; });
+    } catch (e) {}
+    function saveMailSettings() {
+      try { var c = {}; Object.keys(mailSettings).forEach(function (k) { if (k !== "password") c[k] = mailSettings[k]; }); localStorage.setItem(MAIL_LS, JSON.stringify(c)); } catch (e) {}
+    }
+    function setMailPublic(k, v) { ["ru", "en"].forEach(function (l) { ov[l].mail[k] = v; }); }
+    function pfield(label, key, type, ph) {
+      var w = el('<label class="f"><span></span><input></label>');
+      w.querySelector("span").textContent = label;
+      var i = w.querySelector("input");
+      i.type = type || "text"; i.value = mailSettings[key] == null ? "" : mailSettings[key]; i.autocomplete = type === "password" ? "new-password" : "off";
+      if (ph) i.placeholder = ph;
+      i.addEventListener("input", function () { mailSettings[key] = type === "number" ? (parseInt(i.value, 10) || 0) : i.value; saveMailSettings(); });
+      return w;
+    }
+    function phpQ(v) { return "'" + String(v == null ? "" : v).replace(/\\/g, "\\\\").replace(/'/g, "\\'") + "'"; }
+    function mailProblems() {
+      var m = mailSettings, bad = [], re = /^[^\s@<>",;]+@[^\s@<>",;]+\.[^\s@<>",;]{2,}$/;
+      if (!m.host.trim()) bad.push("не указан SMTP-сервер");
+      if (!m.port) bad.push("не указан порт");
+      if (!re.test(m.from_email.trim())) bad.push("некорректный адрес отправителя");
+      var tos = m.to_email.split(/[,;]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+      if (!tos.length || tos.some(function (x) { return !re.test(x); })) bad.push("некорректный адрес для заявок");
+      return bad;
+    }
+    function buildMailConfig() {
+      var m = mailSettings, max = ov.ru.mail.maxFileMb || 20;
+      return ["<?php",
+        "/**",
+        " * Настройки исходящей почты (SMTP) для send.php. Создано «Редактором сайта» " + new Date().toLocaleString("ru-RU") + ".",
+        " * Содержит пароль: не публикуйте файл и не добавляйте его в git.",
+        " * Положите рядом с send.php (или на уровень выше под именем gmh-mail-config.php).",
+        " */",
+        "if (!defined('GMH_MAIL')) { http_response_code(403); exit; }",
+        "",
+        "return [",
+        "    'host'           => " + phpQ(m.host.trim()) + ",",
+        "    'port'           => " + (parseInt(m.port, 10) || 465) + ",",
+        "    'secure'         => " + phpQ(m.secure) + ",",
+        "    'username'       => " + phpQ(m.username) + ",",
+        "    'password'       => " + phpQ(m.password) + ",",
+        "    'from_email'     => " + phpQ(m.from_email.trim()) + ",",
+        "    'from_name'      => " + phpQ(m.from_name) + ",",
+        "    'to_email'       => " + phpQ(m.to_email.trim()) + ",",
+        "    'subject_prefix' => " + phpQ(m.subject_prefix) + ",",
+        "    'big_file_mb'    => " + (parseInt(m.big_file_mb, 10) || 15) + ",",
+        "    'max_file_mb'    => " + max + ",",
+        "    'allowed_ext'    => ['pdf', 'dwg', 'dxf', 'zip', 'rar'],",
+        "    'rate_limit'     => 5,",
+        "    'rate_window'    => 600,",
+        "    'verify_tls'     => true,",
+        "];", ""].join("\n");
+    }
+    function renderMail() {
+      var p = panel("mail"), pub = ov.ru.mail;
+
+      var c1 = card("Отправка заявок с сайта");
+      var onRow = el('<label class="f" style="display:flex;align-items:center;gap:12px;cursor:pointer"><input type="checkbox" style="width:auto;accent-color:var(--gold)"><span style="margin:0;text-transform:none;letter-spacing:0;font-size:14.5px;color:var(--txt)">Отправлять заявки через сервер (SMTP)</span></label>');
+      var onChk = onRow.querySelector("input"); onChk.checked = pub.enabled !== false;
+      onChk.addEventListener("change", function () { setMailPublic("enabled", onChk.checked); markDirty(); });
+      c1.appendChild(onRow);
+      c1.appendChild(el('<p class="note" style="margin-top:6px">Если выключено или сервер недоступен, сайт по-старому открывает у посетителя почтовый клиент с готовым письмом.</p>'));
+      var ep = field("Адрес скрипта приёма заявок", pub.endpoint, function (v) { setMailPublic("endpoint", v.trim() || "send.php"); });
+      c1.appendChild(ep);
+      var mx = el('<label class="f"><span>Максимальный размер файла, МБ</span><input type="number" min="1" max="100"></label>');
+      var mxi = mx.querySelector("input"); mxi.value = pub.maxFileMb || 20;
+      mxi.addEventListener("input", function () { setMailPublic("maxFileMb", Math.max(1, Math.min(100, parseInt(mxi.value, 10) || 20))); markDirty(); });
+      c1.appendChild(mx);
+      c1.appendChild(el('<p class="note">Почтовые серверы обычно ограничивают письмо 20–25 МБ, а вложение при отправке «раздувается» примерно на 33%. ' +
+        'Поэтому файл около 20 МБ может быть отклонён сервером получателя — тогда посетитель увидит запасной вариант (письмо через почтовый клиент). ' +
+        'Для надёжности держите лимит 15–18 МБ. Лимиты PHP <code>upload_max_filesize</code> и <code>post_max_size</code> на хостинге должны быть не меньше этого значения.</p>'));
+      p.appendChild(c1);
+
+      var c2 = card("Сервер исходящей почты (SMTP)");
+      c2.appendChild(el('<p class="sub">Эти настройки <b>не сохраняются в данные сайта</b> и не публикуются. Пароль не запоминается даже в этом браузере: ' +
+        'после обновления страницы его нужно ввести заново. На сервер настройки попадают файлом <code>mail-config.php</code> (кнопка ниже).</p>'));
+      c2.appendChild(pfield("SMTP-сервер", "host", "text", "smtp.example.com"));
+      var row = el('<div class="row"></div>');
+      var portF = pfield("Порт", "port", "number", "465");
+      var secW = el('<label class="f"><span>Шифрование</span><select></select></label>');
+      var sec = secW.querySelector("select");
+      [["ssl", "SSL/TLS (обычно порт 465)"], ["tls", "STARTTLS (обычно порт 587)"], ["none", "Без шифрования (порт 25, не рекомендуется)"]].forEach(function (o) {
+        var op = document.createElement("option"); op.value = o[0]; op.textContent = o[1]; sec.appendChild(op);
+      });
+      sec.value = mailSettings.secure;
+      sec.addEventListener("change", function () {
+        mailSettings.secure = sec.value;
+        var defPort = { ssl: 465, tls: 587, none: 25 }[sec.value];
+        if ([465, 587, 25].indexOf(+mailSettings.port) !== -1) { mailSettings.port = defPort; portF.querySelector("input").value = defPort; }
+        saveMailSettings();
+      });
+      row.appendChild(portF); row.appendChild(secW);
+      c2.appendChild(row);
+      c2.appendChild(pfield("Логин", "username", "text", "обычно полный адрес почты"));
+      c2.appendChild(pfield("Пароль", "password", "password", ""));
+      c2.appendChild(pfield("Адрес отправителя (From)", "from_email", "text", "sales@example.com — обычно совпадает с логином"));
+      c2.appendChild(pfield("Имя отправителя", "from_name", "text", ""));
+      c2.appendChild(pfield("Адрес для заявок (куда приходят письма)", "to_email", "text", "можно несколько через запятую"));
+      c2.appendChild(pfield("Префикс темы письма", "subject_prefix", "text", ""));
+      c2.appendChild(pfield("Файлы крупнее этого размера (МБ) сначала сохраняются в папку files/ на хостинге и удаляются после отправки", "big_file_mb", "number", "15"));
+      p.appendChild(c2);
+
+      var c3 = card("Установка на хостинг и проверка");
+      var res = el('<div class="note" id="mail-result" style="min-height:22px"></div>');
+      var btns = el('<div class="btn-row"></div>');
+      function show(html, bad) { res.innerHTML = html; res.style.color = bad ? "#f87171" : "var(--txt)"; }
+      var dl = el('<button type="button" class="btn btn-sm btn-gold">⬇ Скачать mail-config.php</button>');
+      dl.addEventListener("click", function () {
+        var bad = mailProblems();
+        if (bad.length) { toast("Исправьте: " + bad.join("; "), true); return; }
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([buildMailConfig()], { type: "application/x-httpd-php;charset=utf-8" }));
+        a.download = "mail-config.php"; document.body.appendChild(a); a.click(); a.remove();
+        toast("Файл скачан. Загрузите его на хостинг рядом с send.php.");
+      });
+      var ENDPOINT = function () { return (pub.endpoint || "send.php").trim() || "send.php"; };
+      var st = el('<button type="button" class="btn btn-sm btn-ghost">Проверить сервер</button>');
+      st.addEventListener("click", function () {
+        show("Проверяю…");
+        fetch(ENDPOINT() + (ENDPOINT().indexOf("?") === -1 ? "?" : "&") + "status=1", { cache: "no-store" })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (!j || !j.ok) { show("Скрипт ответил, но не в том формате. Это точно send.php?", true); return; }
+            var need = (pub.maxFileMb || 20) + 1, warn = [];
+            if (!j.configured) warn.push("файл mail-config.php не найден или не заполнен");
+            if (!j.filesWritable) warn.push("папка files/ недоступна для записи");
+            if (!j.openssl) warn.push("в PHP не включено расширение openssl (нужно для SSL/TLS)");
+            if (j.uploadMaxMb < need) warn.push("PHP upload_max_filesize = " + j.uploadMaxMb + " МБ — меньше нужного (" + need + " МБ)");
+            if (j.postMaxMb < need) warn.push("PHP post_max_size = " + j.postMaxMb + " МБ — меньше нужного (" + need + " МБ)");
+            show((warn.length ? "⚠ " + warn.join("<br>⚠ ") : "✓ Всё в порядке.") +
+              "<br>PHP " + esc(j.php) + ", upload_max_filesize " + j.uploadMaxMb + " МБ, post_max_size " + j.postMaxMb + " МБ", warn.length > 0);
+          })
+          .catch(function () { show("Скрипт недоступен. Откройте редактор с сайта на хостинге (не как файл с компьютера) и убедитесь, что send.php загружен.", true); });
+      });
+      var ts = el('<button type="button" class="btn btn-sm btn-ghost">Отправить тестовое письмо</button>');
+      ts.addEventListener("click", function () {
+        show("Отправляю тестовое письмо…");
+        var fd = new FormData(); fd.append("action", "test");
+        fetch(ENDPOINT(), { method: "POST", body: fd })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j.ok) show("✓ Письмо отправлено на адрес для заявок. Проверьте почту (и папку «Спам»).");
+            else if (j.error === "not_configured") show("Сервер не нашёл mail-config.php. Скачайте его кнопкой выше и загрузите рядом с send.php.", true);
+            else if (j.error === "rate_limited") show("Тестовое письмо можно отправлять не чаще раза в минуту.", true);
+            else show("Ошибка отправки: " + esc(j.detail || j.error || "неизвестная"), true);
+          })
+          .catch(function () { show("Скрипт недоступен. Откройте редактор с сайта на хостинге и убедитесь, что send.php загружен.", true); });
+      });
+      btns.appendChild(dl); btns.appendChild(st); btns.appendChild(ts);
+      c3.appendChild(btns); c3.appendChild(res);
+      c3.appendChild(el('<div class="note"><b>Что загрузить на хостинг (PHP 7.2+):</b><br>' +
+        '1. <code>send.php</code> — в корень сайта, рядом с <code>index.html</code>;<br>' +
+        '2. <code>mail-config.php</code> — скачанный здесь файл, рядом с <code>send.php</code>. Его нельзя добавлять в git/GitHub: в нём пароль;<br>' +
+        '3. папка <code>files/</code> с её <code>.htaccess</code> — создаётся автоматически, нужны права записи. На nginx закройте доступ к ней в конфигурации сервера;<br>' +
+        '4. после загрузки нажмите «Проверить сервер», затем «Отправить тестовое письмо», затем «Сохранить» и «Экспорт JSON» (публичные настройки попадут в <code>site-data.json</code>).<br><br>' +
+        '<b>Как работает файл:</b> до порога выше он прикрепляется к письму прямо из временного файла PHP; больше порога — сохраняется в <code>files/</code> под случайным именем, ' +
+        'отправляется на адрес для заявок и сразу удаляется (в том числе если отправка не удалась). Частота заявок ограничена: 5 в 10 минут с одного IP.<br>' +
+        'Сайт на GitHub Pages и другом статическом хостинге без PHP отправлять почту не может — там заявки будут уходить прежним способом (через почтовый клиент).</div>'));
+      p.appendChild(c3);
+    }
+
     function renderContacts() {
       var t = ov[curLang], p = panel("contacts"), c = card("Контакты и футер");
       if (!t.contacts.icons) t.contacts.icons = { address: "pin", phone: "phone", email: "mail", hours: "hours" };
@@ -579,8 +995,8 @@
     }
 
     function renderAll() {
-      renderHero(); renderAbout(); renderServices(); renderEquipment();
-      renderAdvantages(); renderPortfolio(); renderProcess(); renderContacts();
+      renderHero(); renderHeaderPanel(); renderAbout(); renderServices(); renderEquipment();
+      renderAdvantages(); renderPortfolio(); renderProcess(); renderHistory(); renderMail(); renderContacts();
     }
 
     /* ---------- Навигация и язык ---------- */
@@ -633,7 +1049,7 @@
         try {
           var data = JSON.parse(fr.result);
           if (!data.ru || !data.en) throw new Error("bad");
-          ov = data; curLang = curLang || "ru";
+          ov = data; curLang = curLang || "ru"; ensureDefaults();
           localStorage.setItem(OVERRIDE_KEY, JSON.stringify(ov));
           clearDirty(); renderAll(); toast("Файл импортирован и применён.");
         } catch (e) { toast("Некорректный JSON-файл", true); }
@@ -643,13 +1059,14 @@
     document.getElementById("btn-reset").addEventListener("click", function () {
       if (!confirm("Вернуть содержимое сайта к исходному (все ваши правки будут удалены)?")) return;
       localStorage.removeItem(OVERRIDE_KEY);
-      ov = { ru: deepCopy(getBase().ru), en: deepCopy(getBase().en) };
+      ov = { ru: deepCopy(getBase().ru), en: deepCopy(getBase().en) }; ensureDefaults();
       dirty = false;
       document.getElementById("dot").classList.remove("dirty");
       document.getElementById("status-text").textContent = "Содержимое сброшено к исходному.";
       renderAll(); toast("Сброшено к исходному содержимому.");
     });
 
+    ensureDefaults();
     renderAll();
   })();
   </script>

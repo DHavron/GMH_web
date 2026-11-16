@@ -1,1 +1,0 @@
-www.gmhold.com
